@@ -6,7 +6,7 @@
 
   <groupId>sk.rigo</groupId>
   <artifactId>photofinish-app</artifactId>
-  <version>0.1.4</version>
+  <version>0.1.5</version>
   <name>PhotoFinish Branding Studio</name>
 
   <properties>
@@ -60,6 +60,10 @@
           <target>${maven.compiler.target}</target>
           <showWarnings>true</showWarnings>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>

@@ -15,6 +15,7 @@ import sk.rigo.photofinish.watcher.FolderWatcherService;
 import sk.rigo.photofinish.watcher.StableFileDetector;
 
 import java.awt.image.BufferedImage;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -73,8 +74,8 @@ public class FileProcessingService implements AutoCloseable {
 
     executor.submit(() -> {
       try {
-        Optional<Long> inserted = processedFileRepository.insertQueuedIfAbsent(sourcePath);
-        inserted.ifPresent(id -> process(id, sourcePath));
+        Optional<Long> queued = processedFileRepository.queueForProcessing(sourcePath);
+        queued.ifPresent(id -> process(id, sourcePath));
       } catch (Exception ex) {
         errorRepository.log(sourcePath.toString(), "QUEUE", ex.getMessage(), ex);
         LOGGER.log(Level.WARNING, "Failed to queue file " + sourcePath, ex);
@@ -129,8 +130,12 @@ public class FileProcessingService implements AutoCloseable {
       notifyListeners();
 
       stableFileDetector.waitUntilStable(sourcePath, Duration.ofSeconds(45), Duration.ofMillis(600));
+      // Record the fingerprint of the now-stable source so unchanged re-detections (incl. on restart)
+      // are recognised as already handled, while genuinely new content at the same name re-exports.
+      processedFileRepository.updateSourceFingerprint(
+          recordId, Files.size(sourcePath), Files.getLastModifiedTime(sourcePath).toInstant());
       BufferedImage rendered = brandingRenderer.render(sourcePath, template);
-      ExportResult result = imageExporter.export(rendered, sourcePath, recordId, settings, template);
+      ExportResult result = imageExporter.export(rendered, sourcePath, settings, template);
       if (result.status() == ProcessingStatus.EXPORTED) {
         processedFileRepository.markExported(recordId, result.outputPath(), result.stagedPath(), result.message());
       } else {

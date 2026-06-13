@@ -78,9 +78,9 @@ public class BrandingTemplateRepository {
                header_title, header_subtitle, header_left_logo_path, header_right_logo_path,
                results_enabled, results_height_percent, results_title, results_rows_text,
                results_background_color, results_header_color, results_accent_color,
-               updated_at
+               auto_crop_enabled, updated_at
              )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              """, Statement.RETURN_GENERATED_KEYS)) {
       bindTemplate(statement, template);
       statement.executeUpdate();
@@ -107,11 +107,11 @@ public class BrandingTemplateRepository {
                  header_left_logo_path = ?, header_right_logo_path = ?, results_enabled = ?,
                  results_height_percent = ?, results_title = ?, results_rows_text = ?,
                  results_background_color = ?, results_header_color = ?, results_accent_color = ?,
-                 updated_at = ?
+                 auto_crop_enabled = ?, updated_at = ?
              WHERE id = ?
              """)) {
       bindTemplate(statement, template);
-      statement.setLong(37, template.getId());
+      statement.setLong(38, template.getId());
       statement.executeUpdate();
     }
   }
@@ -152,7 +152,8 @@ public class BrandingTemplateRepository {
     statement.setString(33, template.getResultsBackgroundColor());
     statement.setString(34, template.getResultsHeaderColor());
     statement.setString(35, template.getResultsAccentColor());
-    statement.setString(36, Instant.now().toString());
+    statement.setInt(36, template.isAutoCropEnabled() ? 1 : 0);
+    statement.setString(37, Instant.now().toString());
   }
 
   private static BrandingTemplate map(ResultSet resultSet) throws SQLException {
@@ -177,6 +178,7 @@ public class BrandingTemplateRepository {
     template.setCanvasWidth(resultSet.getInt("canvas_width"));
     template.setCanvasHeight(resultSet.getInt("canvas_height"));
     template.setImageFitMode(ImageFitMode.valueOf(resultSet.getString("image_fit_mode")));
+    template.setAutoCropEnabled(resultSet.getInt("auto_crop_enabled") == 1);
     template.setCanvasBackgroundColor(resultSet.getString("canvas_background_color"));
     template.setHeaderEnabled(resultSet.getInt("header_enabled") == 1);
     template.setHeaderHeightPercent(resultSet.getDouble("header_height_percent"));

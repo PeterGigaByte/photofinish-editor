@@ -1,6 +1,7 @@
 package sk.rigo.photofinish.image;
 
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
 
 import javax.imageio.ImageIO;
@@ -22,6 +23,11 @@ import java.util.List;
 public class BrandingRenderer {
 
   private final TextTemplateEngine textTemplateEngine = new TextTemplateEngine();
+  private final PhotofinishAutoCropper autoCropper = new PhotofinishAutoCropper();
+
+  /** Resolved geometry of the poster: output dimensions, header/results band heights and the photo rectangle. */
+  private record PosterLayout(int width, int height, int headerHeight, int resultsHeight, Rectangle imageArea) {
+  }
 
   public BufferedImage render(Path sourcePath, BrandingTemplate template) throws IOException {
     BufferedImage source = ImageIO.read(sourcePath.toFile());
@@ -33,28 +39,70 @@ public class BrandingRenderer {
   }
 
   public BufferedImage render(BufferedImage source, Path sourcePath, BrandingTemplate template) throws IOException {
-    int outputWidth = template.isCanvasEnabled() ? Math.max(320, template.getCanvasWidth()) : source.getWidth();
-    int outputHeight = template.isCanvasEnabled() ? Math.max(320, template.getCanvasHeight()) : source.getHeight();
-    BufferedImage output = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_ARGB);
+    // Step 1: trim the empty (no-participant) stretches from long strips, keeping the original pixels.
+    BufferedImage image = autoCropper.cropIfBeneficial(source, template.isAutoCropEnabled());
+    // Step 2: build the poster (header, image, results, logos, text bar) around the resulting photo.
+    PosterLayout layout = layout(image, template);
+    BufferedImage output = new BufferedImage(layout.width(), layout.height(), BufferedImage.TYPE_INT_ARGB);
     Graphics2D graphics = output.createGraphics();
     try {
       applyQualityHints(graphics);
       graphics.setColor(ColorParser.parse(template.getCanvasBackgroundColor(), Color.WHITE));
       graphics.fillRect(0, 0, output.getWidth(), output.getHeight());
-      Rectangle imageArea = imageArea(output, template);
-      drawSourceImage(graphics, source, imageArea, template);
-      drawTextBar(graphics, sourcePath, output, template);
+      drawSourceImage(graphics, image, layout.imageArea(), template);
+      drawTextBar(graphics, sourcePath, layout.imageArea(), output.getWidth(), template);
       drawLogo(graphics, output, template);
-      drawHeader(graphics, output, template);
-      drawResultsTable(graphics, output, template);
+      drawHeader(graphics, output, layout.headerHeight(), template);
+      drawResultsTable(graphics, output, layout.resultsHeight(), template);
     } finally {
       graphics.dispose();
     }
     return output;
   }
 
+  private static PosterLayout layout(BufferedImage image, BrandingTemplate template) {
+    int imageWidth = image.getWidth();
+    int imageHeight = image.getHeight();
+
+    if (!template.isCanvasEnabled()) {
+      return new PosterLayout(imageWidth, imageHeight, 0, 0, new Rectangle(0, 0, imageWidth, imageHeight));
+    }
+
+    if (template.getImageFitMode() == ImageFitMode.ORIGINAL) {
+      // Keep the photo at its native resolution; the poster width follows the (cropped) photo width
+      // and the header/results bands are sized relative to the photo height.
+      int headerHeight = template.isHeaderEnabled()
+          ? Math.max(0, (int) Math.round(imageHeight * template.getHeaderHeightPercent() / 100.0))
+          : 0;
+      int resultsHeight = template.isResultsEnabled()
+          ? Math.max(0, (int) Math.round(imageHeight * template.getResultsHeightPercent() / 100.0))
+          : 0;
+      int height = headerHeight + imageHeight + resultsHeight;
+      Rectangle imageArea = new Rectangle(0, headerHeight, imageWidth, imageHeight);
+      return new PosterLayout(imageWidth, height, headerHeight, resultsHeight, imageArea);
+    }
+
+    int width = Math.max(320, template.getCanvasWidth());
+    int height = Math.max(320, template.getCanvasHeight());
+    int headerHeight = template.isHeaderEnabled()
+        ? Math.max(0, (int) Math.round(height * template.getHeaderHeightPercent() / 100.0))
+        : 0;
+    int resultsHeight = template.isResultsEnabled()
+        ? Math.max(0, (int) Math.round(height * template.getResultsHeightPercent() / 100.0))
+        : 0;
+    int areaHeight = Math.max(1, height - headerHeight - resultsHeight);
+    Rectangle imageArea = new Rectangle(0, headerHeight, width, areaHeight);
+    return new PosterLayout(width, height, headerHeight, resultsHeight, imageArea);
+  }
+
   private void drawSourceImage(Graphics2D graphics, BufferedImage source, Rectangle target, BrandingTemplate template) {
     if (target.width <= 0 || target.height <= 0) {
+      return;
+    }
+
+    if (template.getImageFitMode() == ImageFitMode.ORIGINAL) {
+      // Draw at native 1:1 pixels; the image area was sized to match the photo, so nothing is scaled or cropped here.
+      graphics.drawImage(source, target.x, target.y, null);
       return;
     }
 
@@ -81,12 +129,17 @@ public class BrandingRenderer {
     graphics.drawImage(source, target.x, target.y, target.width, target.height, null);
   }
 
-  private void drawTextBar(Graphics2D graphics, Path sourcePath, BufferedImage output, BrandingTemplate template) {
+  private void drawTextBar(
+      Graphics2D graphics,
+      Path sourcePath,
+      Rectangle targetArea,
+      int outputWidth,
+      BrandingTemplate template
+  ) {
     if (!template.isTextBarEnabled()) {
       return;
     }
 
-    Rectangle targetArea = imageArea(output, template);
     int barHeight = Math.max(24, (int) Math.round(targetArea.height * template.getTextBarHeightPercent() / 100.0));
     int y = targetArea.y + targetArea.height - barHeight;
     graphics.setColor(ColorParser.parse(template.getTextBarColor(), new Color(0, 0, 0, 190)));
@@ -97,7 +150,7 @@ public class BrandingRenderer {
       return;
     }
 
-    int horizontalPadding = Math.max(16, output.getWidth() / 80);
+    int horizontalPadding = Math.max(16, outputWidth / 80);
     int fontSize = Math.max(12, template.getFontSize());
     Font font = new Font(template.getFontName(), Font.BOLD, fontSize);
     FontMetrics metrics = graphics.getFontMetrics(font);
@@ -140,50 +193,55 @@ public class BrandingRenderer {
     graphics.setComposite(previousComposite);
   }
 
-  private void drawHeader(Graphics2D graphics, BufferedImage output, BrandingTemplate template) throws IOException {
-    if (!template.isHeaderEnabled()) {
-      return;
-    }
-
-    int height = headerHeight(output, template);
-    if (height <= 0) {
+  private void drawHeader(Graphics2D graphics, BufferedImage output, int height, BrandingTemplate template) throws IOException {
+    if (!template.isHeaderEnabled() || height <= 0) {
       return;
     }
 
     graphics.setColor(ColorParser.parse(template.getHeaderBackgroundColor(), new Color(13, 91, 145)));
     graphics.fillRect(0, 0, output.getWidth(), height);
 
-    int padding = Math.max(18, output.getWidth() / 40);
-    int logoMaxHeight = Math.max(24, height - padding * 2);
-    int leftLogoWidth = drawHeaderLogo(graphics, template.getHeaderLeftLogoPath(), padding, padding, output.getWidth() / 5, logoMaxHeight);
+    // Horizontal padding follows the poster width; the vertical inset is bounded by the band height so
+    // the header content always stays inside the band (matters for short native-size strips).
+    int hPadding = Math.max(18, output.getWidth() / 40);
+    int vPadding = Math.max(6, Math.min(hPadding, height / 6));
+    int logoMaxHeight = Math.max(16, height - vPadding * 2);
+    int leftLogoWidth = drawHeaderLogo(graphics, template.getHeaderLeftLogoPath(), hPadding, vPadding, output.getWidth() / 5, logoMaxHeight);
     int rightLogoWidth = drawHeaderLogoRight(
         graphics,
         template.getHeaderRightLogoPath(),
-        output.getWidth() - padding,
-        padding,
+        output.getWidth() - hPadding,
+        vPadding,
         output.getWidth() / 4,
         logoMaxHeight
     );
 
-    int textX = padding + leftLogoWidth + (leftLogoWidth > 0 ? padding : 0);
-    int textRight = output.getWidth() - padding - rightLogoWidth - (rightLogoWidth > 0 ? padding : 0);
+    int textX = hPadding + leftLogoWidth + (leftLogoWidth > 0 ? hPadding : 0);
+    int textRight = output.getWidth() - hPadding - rightLogoWidth - (rightLogoWidth > 0 ? hPadding : 0);
     int textWidth = Math.max(80, textRight - textX);
     graphics.setColor(ColorParser.parse(template.getHeaderTextColor(), Color.WHITE));
 
-    int titleSize = Math.max(18, height / 5);
+    String subtitle = nullToEmpty(template.getHeaderSubtitle()).strip();
+    int subtitleSize = subtitle.isBlank() ? 0 : Math.max(10, height / 9);
+    int subtitleGap = subtitle.isBlank() ? 0 : Math.max(2, height / 20);
+
+    // Reserve room for the subtitle, then size the title and limit the wrapped line count to what fits.
+    int titleArea = Math.max(1, height - vPadding * 2 - subtitleSize - subtitleGap);
+    int titleSize = Math.max(12, Math.min(height / 5, titleArea));
+    int lineStep = titleSize + Math.max(2, titleSize / 7);
+    int maxLines = Math.max(1, Math.min(3, titleArea / lineStep));
+
     Font titleFont = new Font(template.getFontName(), Font.BOLD, titleSize);
-    int y = padding + titleSize;
-    for (String line : wrapLines(nullToEmpty(template.getHeaderTitle()), graphics, titleFont, textWidth, 3)) {
+    int y = vPadding + titleSize;
+    for (String line : wrapLines(nullToEmpty(template.getHeaderTitle()), graphics, titleFont, textWidth, maxLines)) {
       graphics.setFont(titleFont);
       graphics.drawString(line, textX, y);
-      y += titleSize + Math.max(2, titleSize / 7);
+      y += lineStep;
     }
 
-    String subtitle = nullToEmpty(template.getHeaderSubtitle());
     if (!subtitle.isBlank()) {
-      int subtitleSize = Math.max(12, height / 9);
       graphics.setFont(new Font(template.getFontName(), Font.PLAIN, subtitleSize));
-      graphics.drawString(subtitle, textX, Math.min(height - padding / 2, y + subtitleSize));
+      graphics.drawString(subtitle, textX, Math.min(height - vPadding, y + subtitleSize));
     }
   }
 
@@ -221,13 +279,8 @@ public class BrandingRenderer {
     return size[0];
   }
 
-  private void drawResultsTable(Graphics2D graphics, BufferedImage output, BrandingTemplate template) {
-    if (!template.isResultsEnabled()) {
-      return;
-    }
-
-    int height = resultsHeight(output, template);
-    if (height <= 0) {
+  private void drawResultsTable(Graphics2D graphics, BufferedImage output, int height, BrandingTemplate template) {
+    if (!template.isResultsEnabled() || height <= 0) {
       return;
     }
 
@@ -240,16 +293,21 @@ public class BrandingRenderer {
     graphics.fillRect(0, y, output.getWidth(), height);
 
     int padding = Math.max(12, output.getWidth() / 60);
-    int titleHeight = Math.max(34, height / 7);
+    // Keep the title bar within the band even when it is short (native-size strips with a small results percent).
+    int titleHeight = Math.min(Math.max(28, height / 7), Math.max(28, height * 3 / 5));
     graphics.setColor(header);
     graphics.fillRect(0, y, output.getWidth(), titleHeight);
     graphics.setColor(Color.WHITE);
-    graphics.setFont(new Font(template.getFontName(), Font.BOLD, Math.max(18, titleHeight / 2)));
+    graphics.setFont(new Font(template.getFontName(), Font.BOLD, Math.max(16, titleHeight / 2)));
     graphics.drawString(nullToEmpty(template.getResultsTitle()), padding, y + titleHeight - Math.max(8, titleHeight / 5));
 
     int tableTop = y + titleHeight;
     int rowHeight = Math.max(22, (height - titleHeight) / 8);
     int headerRowHeight = Math.max(20, rowHeight);
+    if (tableTop + headerRowHeight > output.getHeight()) {
+      // No room below the title bar for the column header - leave the table empty rather than overflow the band.
+      return;
+    }
     graphics.setFont(new Font(template.getFontName(), Font.BOLD, Math.max(11, rowHeight / 3)));
     graphics.setColor(new Color(90, 170, 245));
     drawResultColumns(graphics, tableTop + headerRowHeight - 7, padding, output.getWidth(), new String[]{
@@ -330,27 +388,6 @@ public class BrandingRenderer {
       case BOTTOM_RIGHT -> new int[]{imageWidth - logoWidth - offsetX, imageHeight - logoHeight - offsetY};
       case CENTER -> new int[]{(imageWidth - logoWidth) / 2 + offsetX, (imageHeight - logoHeight) / 2 + offsetY};
     };
-  }
-
-  private static Rectangle imageArea(BufferedImage output, BrandingTemplate template) {
-    int headerHeight = headerHeight(output, template);
-    int resultsHeight = resultsHeight(output, template);
-    int imageHeight = Math.max(1, output.getHeight() - headerHeight - resultsHeight);
-    return new Rectangle(0, headerHeight, output.getWidth(), imageHeight);
-  }
-
-  private static int headerHeight(BufferedImage output, BrandingTemplate template) {
-    if (!template.isCanvasEnabled() || !template.isHeaderEnabled()) {
-      return 0;
-    }
-    return Math.max(0, (int) Math.round(output.getHeight() * template.getHeaderHeightPercent() / 100.0));
-  }
-
-  private static int resultsHeight(BufferedImage output, BrandingTemplate template) {
-    if (!template.isCanvasEnabled() || !template.isResultsEnabled()) {
-      return 0;
-    }
-    return Math.max(0, (int) Math.round(output.getHeight() * template.getResultsHeightPercent() / 100.0));
   }
 
   private static BufferedImage readOptionalImage(String imagePath) throws IOException {

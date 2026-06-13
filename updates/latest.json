@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "0.1.4",
-    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.4/PhotoFinishBrandingStudio-0.1.4.msi",
-    "sha256":  "B74FEF80053B867CBECD49726714FF5AABF13F898BB8E5CAFF67C586C291016A",
-    "notes":  "Adds poster-style template editing with canvas/header/results controls, live preview support, dark UI styling, and branded app/installer icons."
+    "version":  "0.1.5",
+    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.5/PhotoFinishBrandingStudio-0.1.5.msi",
+    "sha256":  "6E29559BBE79BA2310A9FC72350B73AAF7A24A2ED6BE4FA39221B51D9F6F997E",
+    "notes":  "Keep original photo size with auto-crop of empty (no-athlete) areas on long strips; new \u0027Keep original size\u0027 poster mode builds header/results/logos around the native-size photo. Exports keep the input\u0027s base name and re-export when the same-named file has new content."
 }

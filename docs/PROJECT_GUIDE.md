@@ -81,7 +81,7 @@ Rules:
 - create the input folder if missing
 - enqueue existing supported images on watcher start
 - use `StableFileDetector` before processing
-- avoid duplicates through `processed_files.source_path`
+- de-duplicate by content fingerprint: skip a re-detected file only when its size and last-modified match the stored values; re-queue when the content changed
 - never process on the JavaFX UI thread
 
 ## Processing Pipeline
@@ -89,9 +89,9 @@ Rules:
 `FileProcessingService` handles queueing and processing.
 
 Flow:
-1. Insert `QUEUED` row if source path is new.
+1. Queue the file (`queueForProcessing`): insert a `QUEUED` row for a new path, re-queue when the content at a known path changed, or skip when unchanged.
 2. Mark `PROCESSING`.
-3. Wait for source file stability.
+3. Wait for source file stability, then refresh the stored size + last-modified fingerprint.
 4. Render branding with `BrandingRenderer`.
 5. Write staged output with `ImageExporter`.
 6. Copy to export path.
@@ -99,13 +99,18 @@ Flow:
 
 `PENDING_EXPORT` is valid when the export path is offline or inaccessible.
 
+Exported files keep the input's base name (e.g. `race1.jpg` → `race1.<output-extension>`). Re-exporting changed content under the same name overwrites the previous export.
+
 ## Image Rendering
 
 `BrandingRenderer` is independent of JavaFX.
 
 Supported features:
 - optional fixed-size poster canvas for portrait/social output
-- image fit mode: cover, contain, or stretch
+- image fit mode: keep original size, cover, contain, or stretch
+  - `Keep original size` (`ImageFitMode.ORIGINAL`) draws the photo at native 1:1 pixels and builds the poster around it; the output width follows the (cropped) photo width and the header/results bands are sized relative to the photo height
+  - `cover` / `contain` / `stretch` fit the photo into the fixed canvas as before
+- auto-crop of empty (no-participant) areas via `PhotofinishAutoCropper`, applied before layout when enabled; only engages for long strips (width ≥ 2.5× height) and never scales pixels
 - canvas background color
 - top header with title, subtitle, colors, and left/right logo images
 - logo overlay

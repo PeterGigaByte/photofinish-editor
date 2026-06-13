@@ -26,9 +26,29 @@ public class ProcessedFileRepository {
     this.database = database;
   }
 
-  public synchronized Optional<Long> insertQueuedIfAbsent(Path sourcePath) throws SQLException, IOException {
-    if (findBySourcePath(sourcePath.toAbsolutePath().toString()).isPresent()) {
-      return Optional.empty();
+  /**
+   * Queues {@code sourcePath} for processing and returns the record id to process, or empty when the
+   * file has already been handled and is unchanged.
+   *
+   * <p>De-duplication is based on the file's content fingerprint (size + last-modified) rather than
+   * the path alone: a file we have already exported and that has not changed is skipped, but new
+   * content arriving under the same name is re-queued so it is exported again.
+   */
+  public synchronized Optional<Long> queueForProcessing(Path sourcePath) throws SQLException, IOException {
+    String absolutePath = sourcePath.toAbsolutePath().toString();
+    long size = Files.size(sourcePath);
+    Instant modified = Files.getLastModifiedTime(sourcePath).toInstant();
+
+    Optional<ProcessedFile> existing = findBySourcePath(absolutePath);
+    if (existing.isPresent()) {
+      ProcessedFile file = existing.get();
+      if (file.sourceSize() == size && modified.equals(file.sourceLastModified())) {
+        // Same file we have already handled - leave its current status (e.g. EXPORTED) untouched.
+        return Optional.empty();
+      }
+      // The file at this path has new content - re-queue it for a fresh export under the same name.
+      requeue(file.id(), size, modified);
+      return Optional.of(file.id());
     }
 
     try (Connection connection = database.getConnection();
@@ -38,9 +58,9 @@ public class ProcessedFileRepository {
              )
              VALUES (?, ?, ?, ?, ?)
              """, Statement.RETURN_GENERATED_KEYS)) {
-      statement.setString(1, sourcePath.toAbsolutePath().toString());
-      statement.setLong(2, Files.size(sourcePath));
-      statement.setString(3, Files.getLastModifiedTime(sourcePath).toInstant().toString());
+      statement.setString(1, absolutePath);
+      statement.setLong(2, size);
+      statement.setString(3, modified.toString());
       statement.setString(4, ProcessingStatus.QUEUED.name());
       statement.setString(5, Instant.now().toString());
       statement.executeUpdate();
@@ -51,6 +71,37 @@ public class ProcessedFileRepository {
       }
     }
     return Optional.empty();
+  }
+
+  private void requeue(long id, long size, Instant modified) throws SQLException {
+    try (Connection connection = database.getConnection();
+         PreparedStatement statement = connection.prepareStatement("""
+             UPDATE processed_files
+             SET status = ?, source_size = ?, source_last_modified = ?,
+                 output_path = NULL, staged_path = NULL, message = ?, processed_at = NULL
+             WHERE id = ?
+             """)) {
+      statement.setString(1, ProcessingStatus.QUEUED.name());
+      statement.setLong(2, size);
+      statement.setString(3, modified.toString());
+      statement.setString(4, "Re-queued: source changed");
+      statement.setLong(5, id);
+      statement.executeUpdate();
+    }
+  }
+
+  public synchronized void updateSourceFingerprint(long id, long size, Instant modified) throws SQLException {
+    try (Connection connection = database.getConnection();
+         PreparedStatement statement = connection.prepareStatement("""
+             UPDATE processed_files
+             SET source_size = ?, source_last_modified = ?
+             WHERE id = ?
+             """)) {
+      statement.setLong(1, size);
+      statement.setString(2, modified.toString());
+      statement.setLong(3, id);
+      statement.executeUpdate();
+    }
   }
 
   public synchronized Optional<ProcessedFile> findById(long id) throws SQLException {

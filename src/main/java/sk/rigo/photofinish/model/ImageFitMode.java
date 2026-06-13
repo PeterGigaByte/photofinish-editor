@@ -1,6 +1,7 @@
 package sk.rigo.photofinish.model;
 
 public enum ImageFitMode {
+  ORIGINAL("Keep original size"),
   COVER("Cover"),
   CONTAIN("Contain"),
   STRETCH("Stretch");

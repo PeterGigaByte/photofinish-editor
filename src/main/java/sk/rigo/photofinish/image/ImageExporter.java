@@ -28,9 +28,9 @@ public class ImageExporter {
     this.stagingDirectory = stagingDirectory;
   }
 
-  public ExportResult export(BufferedImage image, Path sourcePath, long recordId, AppSettings settings, BrandingTemplate template) throws IOException {
+  public ExportResult export(BufferedImage image, Path sourcePath, AppSettings settings, BrandingTemplate template) throws IOException {
     OutputFormat format = template.getOutputFormat();
-    String filename = brandedFileName(sourcePath, recordId, format);
+    String filename = exportFileName(sourcePath, format);
     Path stagedPath = stagingDirectory.resolve(filename);
     writeImage(image, stagedPath, format);
 
@@ -111,11 +111,12 @@ public class ImageExporter {
     }
   }
 
-  private static String brandedFileName(Path sourcePath, long recordId, OutputFormat format) {
+  private static String exportFileName(Path sourcePath, OutputFormat format) {
+    // Keep the same base name as the input; only the extension reflects the chosen output format.
     String name = sourcePath.getFileName() == null ? "image" : sourcePath.getFileName().toString();
     int dot = name.lastIndexOf('.');
     String base = dot > 0 ? name.substring(0, dot) : name;
-    return sanitize(base) + "_branded_" + recordId + "." + format.extension();
+    return sanitize(base) + "." + format.extension();
   }
 
   private static String sanitize(String value) {
