@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
@@ -13,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,6 +87,19 @@ public class UpdateService {
     return target;
   }
 
+  public void launchInstallerAfterCurrentAppExits(Path installerPath) throws IOException {
+    if (installerPath == null || !Files.isRegularFile(installerPath)) {
+      throw new IOException("Installer file is not available: " + installerPath);
+    }
+
+    if (isWindows()) {
+      launchWindowsInstallerAfterExit(installerPath);
+      return;
+    }
+
+    new ProcessBuilder(installerPath.toAbsolutePath().toString()).start();
+  }
+
   private static String field(String json, String name) {
     Matcher matcher = JSON_FIELD.matcher(json);
     while (matcher.find()) {
@@ -105,5 +120,47 @@ public class UpdateService {
     } catch (NoSuchAlgorithmException ex) {
       throw new IOException("SHA-256 is not available", ex);
     }
+  }
+
+  private static void launchWindowsInstallerAfterExit(Path installerPath) throws IOException {
+    Path script = Files.createTempFile("photofinish-update-", ".ps1");
+    String content = """
+        param(
+          [long] $ProcessId,
+          [string] $InstallerPath
+        )
+
+        try {
+          Wait-Process -Id $ProcessId -ErrorAction SilentlyContinue
+        } catch {
+        }
+
+        Start-Sleep -Seconds 1
+        $extension = [System.IO.Path]::GetExtension($InstallerPath)
+        if ($extension -ieq ".msi") {
+          $quotedInstaller = '"' + $InstallerPath.Replace('"', '""') + '"'
+          Start-Process -FilePath "msiexec.exe" -ArgumentList "/i $quotedInstaller /passive /norestart"
+        } else {
+          Start-Process -FilePath $InstallerPath
+        }
+        """;
+    Files.writeString(script, content, StandardCharsets.UTF_8);
+
+    new ProcessBuilder(
+        "powershell.exe",
+        "-NoProfile",
+        "-WindowStyle",
+        "Hidden",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        script.toAbsolutePath().toString(),
+        Long.toString(ProcessHandle.current().pid()),
+        installerPath.toAbsolutePath().toString()
+    ).start();
+  }
+
+  private static boolean isWindows() {
+    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
   }
 }

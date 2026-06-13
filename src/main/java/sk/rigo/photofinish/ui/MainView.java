@@ -314,7 +314,7 @@ public class MainView {
 
     Button checkUpdate = new Button("Check for updates");
     checkUpdate.setOnAction(event -> checkForUpdates());
-    downloadUpdateButton = new Button("Download installer");
+    downloadUpdateButton = new Button("Download and install");
     downloadUpdateButton.setDisable(true);
     downloadUpdateButton.setOnAction(event -> downloadUpdate());
 
@@ -544,12 +544,17 @@ public class MainView {
         .supplyAsync(() -> {
           try {
             Path tempUpdateDirectory = Path.of(System.getProperty("java.io.tmpdir"), "photofinish-branding-studio-updates");
-            return context.updateService().downloadInstaller(latestUpdateInfo, tempUpdateDirectory);
+            Path installerPath = context.updateService().downloadInstaller(latestUpdateInfo, tempUpdateDirectory);
+            context.updateService().launchInstallerAfterCurrentAppExits(installerPath);
+            return installerPath;
           } catch (Exception ex) {
             throw new IllegalStateException(ex);
           }
         }, uiExecutor)
-        .thenAccept(path -> Platform.runLater(() -> updateStatusLabel.setText("Installer downloaded to " + path)))
+        .thenAccept(path -> Platform.runLater(() -> {
+          updateStatusLabel.setText("Installer downloaded. Closing app and starting installer.");
+          Platform.exit();
+        }))
         .exceptionally(ex -> {
           Platform.runLater(() -> {
             updateStatusLabel.setText("Download failed: " + userMessage(ex));

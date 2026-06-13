@@ -42,7 +42,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.1.jar
+java -jar target\photofinish-app-0.1.2.jar
 ```
 
 ## Build a Windows installer
@@ -54,10 +54,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.1 `
+  --app-version 0.1.2 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.1.jar `
+  --main-jar photofinish-app-0.1.2.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --win-dir-chooser `
@@ -86,4 +86,4 @@ https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/update
 }
 ```
 
-The MVP downloads the installer to a temp directory. It does not overwrite the running application.
+The app downloads the installer to a temp directory, launches it, and then exits so the installer can upgrade the app.
