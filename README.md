@@ -71,6 +71,12 @@ The Maven build copies runtime dependencies to `target\lib`, and the jar manifes
 
 Update checking is disabled until a real `latest.json` URL is configured in the Folders tab.
 
+For the current GitHub-hosted update channel, use:
+
+```text
+https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/latest.json
+```
+
 ```json
 {
   "version": "0.2.0",
