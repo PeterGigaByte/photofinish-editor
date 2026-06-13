@@ -35,5 +35,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### Local AI assistant notes ###
+CLAUDE.local.md
+
 ### Mac OS ###
 .DS_Store

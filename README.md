@@ -68,6 +68,20 @@ jpackage `
 
 The Maven build copies runtime dependencies to `target\lib`, and the jar manifest points to that folder.
 
+The preferred release helper is:
+
+```powershell
+.\scripts\Build-Installer.ps1
+```
+
+## Project documentation
+
+- `docs/PROJECT_GUIDE.md` describes architecture and runtime behavior.
+- `docs/RELEASE_PROCESS.md` describes versioning, MSI packaging, and update publishing.
+- `docs/AI_ASSISTANT_GUIDE.md` describes how Codex, Claude, and other agents should work in this repo.
+- `AGENTS.md` is the shared durable instruction file for coding agents.
+- `CLAUDE.md` imports `AGENTS.md` for Claude Code.
+
 ## `latest.json` example
 
 Update checking is disabled until a real `latest.json` URL is configured in the Folders tab.
