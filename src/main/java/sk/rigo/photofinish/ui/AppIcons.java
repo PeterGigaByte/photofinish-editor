@@ -1,5 +1,6 @@
 package sk.rigo.photofinish.ui;
 
+import java.util.List;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -10,16 +11,44 @@ import javafx.scene.text.FontWeight;
 
 public final class AppIcons {
 
+  /** The icon is designed on a 256x256 grid and scaled to each requested size. */
+  private static final double DESIGN_SIZE = 256.0;
+  private static final int[] ICON_SIZES = {16, 24, 32, 48, 64, 128, 256};
+
   private AppIcons() {
   }
 
+  /**
+   * Window/taskbar icons rendered at several native sizes. Providing each size separately keeps the
+   * icon crisp in the title bar and taskbar, where a single large image would be downscaled and look
+   * blurry.
+   */
+  public static List<Image> windowIcons() {
+    return java.util.Arrays.stream(ICON_SIZES).mapToObj(AppIcons::renderIcon).toList();
+  }
+
+  /** Largest icon, for callers that want a single image. */
   public static Image windowIcon() {
-    int size = 256;
+    return renderIcon(256);
+  }
+
+  private static Image renderIcon(int size) {
     Canvas canvas = new Canvas(size, size);
     GraphicsContext graphics = canvas.getGraphicsContext2D();
+    double scale = size / DESIGN_SIZE;
+    graphics.scale(scale, scale);
+    draw(graphics);
 
+    SnapshotParameters parameters = new SnapshotParameters();
+    parameters.setFill(Color.TRANSPARENT);
+    Image image = canvas.snapshot(parameters, null);
+    return image;
+  }
+
+  /** Draws the "PF" photofinish badge on the 256x256 design grid. */
+  private static void draw(GraphicsContext graphics) {
     graphics.setFill(Color.rgb(17, 21, 29));
-    graphics.fillRoundRect(0, 0, size, size, 46, 46);
+    graphics.fillRoundRect(0, 0, 256, 256, 46, 46);
 
     graphics.setFill(Color.rgb(63, 182, 255));
     graphics.fillRoundRect(22, 24, 212, 70, 18, 18);
@@ -40,9 +69,5 @@ public final class AppIcons {
     graphics.setStroke(Color.rgb(242, 67, 67));
     graphics.setLineWidth(8);
     graphics.strokeLine(150, 106, 150, 222);
-
-    SnapshotParameters parameters = new SnapshotParameters();
-    parameters.setFill(Color.TRANSPARENT);
-    return canvas.snapshot(parameters, null);
   }
 }

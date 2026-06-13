@@ -49,12 +49,14 @@ public class PhotofinishAutoCropper {
   private static final double MIN_REMOVABLE_GAP_FRACTION = 0.08;
 
   /**
-   * Returns an auto-cropped view of {@code source} when cropping is requested and beneficial,
-   * otherwise the original image. The returned image always shares the original resolution of the
-   * pixels it keeps (no scaling).
+   * Crops the empty (no-participant) regions from a long photofinish strip, keeping the original
+   * pixels (nothing is scaled). {@code horizontal} trims the empty front and back (and, when
+   * {@code betweenParticipants} is set, the large empty gaps between athletes); {@code vertical}
+   * trims the empty bands above and below the athletes. Returns the source unchanged when it is not
+   * a long strip or there is nothing worth removing.
    */
-  public BufferedImage cropIfBeneficial(BufferedImage source, boolean enabled) {
-    if (!enabled || source == null) {
+  public BufferedImage crop(BufferedImage source, boolean horizontal, boolean betweenParticipants, boolean vertical) {
+    if (source == null || (!horizontal && !vertical)) {
       return source;
     }
     int width = source.getWidth();
@@ -62,6 +64,20 @@ public class PhotofinishAutoCropper {
     if (width <= 1 || height <= 1 || (double) width / height < MIN_LONG_ASPECT) {
       return source;
     }
+
+    BufferedImage image = source;
+    if (horizontal) {
+      image = cropHorizontal(image, betweenParticipants);
+    }
+    if (vertical) {
+      image = cropVertical(image);
+    }
+    return image;
+  }
+
+  private static BufferedImage cropHorizontal(BufferedImage source, boolean betweenParticipants) {
+    int width = source.getWidth();
+    int height = source.getHeight();
 
     int rowStep = Math.max(1, height / MAX_ROW_SAMPLES);
     int[] sampledRows = sampledIndices(height, rowStep);
@@ -119,10 +135,12 @@ public class PhotofinishAutoCropper {
       return source;
     }
 
-    // Keep small gaps intact: a short low-activity stretch may be a low-contrast part of an athlete
-    // (between arms/legs), so only genuinely large empty runs are eligible for removal.
-    int minRemovableGap = Math.max(2 * (int) Math.round(width * MARGIN_FRACTION),
-        (int) Math.round(width * MIN_REMOVABLE_GAP_FRACTION));
+    // When between-participant collapsing is off, bridge ALL clusters so only the empty front and
+    // back are trimmed - this keeps the photofinish time axis continuous. When on, only genuinely
+    // large empty runs are removed; small gaps may be a low-contrast part of an athlete.
+    int minRemovableGap = betweenParticipants
+        ? Math.max(2 * (int) Math.round(width * MARGIN_FRACTION), (int) Math.round(width * MIN_REMOVABLE_GAP_FRACTION))
+        : Integer.MAX_VALUE;
     List<int[]> bridged = new ArrayList<>();
     for (int[] cluster : clusters) {
       if (!bridged.isEmpty() && cluster[0] - bridged.get(bridged.size() - 1)[1] - 1 < minRemovableGap) {
@@ -175,6 +193,67 @@ public class PhotofinishAutoCropper {
     return cropped;
   }
 
+  private static BufferedImage cropVertical(BufferedImage source) {
+    int width = source.getWidth();
+    int height = source.getHeight();
+    if (height <= 2) {
+      return source;
+    }
+
+    int columnStep = Math.max(1, width / MAX_BG_COLUMN_SAMPLES);
+    int[] sampledColumns = sampledIndices(width, columnStep);
+
+    // Per-row activity = how much the row varies across its width. Empty track/sky rows are almost
+    // uniform horizontally (low), rows containing athletes vary a lot (high). Only the empty bands
+    // above and below the athletes are trimmed; the athlete band itself is kept contiguous.
+    double[] activity = new double[height];
+    int[] lumas = new int[sampledColumns.length];
+    for (int y = 0; y < height; y++) {
+      long sum = 0;
+      for (int j = 0; j < sampledColumns.length; j++) {
+        int value = luma(source.getRGB(sampledColumns[j], y));
+        lumas[j] = value;
+        sum += value;
+      }
+      double mean = (double) sum / sampledColumns.length;
+      double deviation = 0.0;
+      for (int value : lumas) {
+        deviation += Math.abs(value - mean);
+      }
+      activity[y] = deviation / sampledColumns.length;
+    }
+
+    double[] sorted = activity.clone();
+    Arrays.sort(sorted);
+    double emptyLevel = percentile(sorted, EMPTY_PERCENTILE);
+    double contentLevel = percentile(sorted, CONTENT_PERCENTILE);
+    double threshold = emptyLevel
+        + Math.max(MIN_ACTIVITY_DELTA, (contentLevel - emptyLevel) * CONTENT_THRESHOLD_FRACTION);
+
+    int first = -1;
+    int last = -1;
+    for (int y = 0; y < height; y++) {
+      if (activity[y] >= threshold) {
+        if (first < 0) {
+          first = y;
+        }
+        last = y;
+      }
+    }
+    if (first < 0) {
+      return source;
+    }
+
+    int margin = Math.max(12, (int) Math.round(height * MARGIN_FRACTION));
+    int top = Math.max(0, first - margin);
+    int bottom = Math.min(height - 1, last + margin);
+    int croppedHeight = bottom - top + 1;
+    if (croppedHeight >= height) {
+      return source;
+    }
+    return source.getSubimage(0, top, width, croppedHeight);
+  }
+
   private static int[][] backgroundColorPerRow(BufferedImage source, int[] sampledRows, int width) {
     int columnStep = Math.max(1, width / MAX_BG_COLUMN_SAMPLES);
     int[] sampledColumns = sampledIndices(width, columnStep);
@@ -210,6 +289,13 @@ public class PhotofinishAutoCropper {
     int[] copy = Arrays.copyOf(values, values.length);
     Arrays.sort(copy);
     return copy[copy.length / 2];
+  }
+
+  private static int luma(int argb) {
+    int r = (argb >> 16) & 0xFF;
+    int g = (argb >> 8) & 0xFF;
+    int b = argb & 0xFF;
+    return (int) Math.round(0.299 * r + 0.587 * g + 0.114 * b);
   }
 
   private static double percentile(double[] sortedAscending, double quantile) {

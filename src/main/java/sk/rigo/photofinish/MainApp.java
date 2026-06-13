@@ -88,7 +88,7 @@ public class MainApp extends Application {
       scene.getStylesheets().add(stylesheet.toExternalForm());
     }
     stage.setTitle(context.metadata().name());
-    stage.getIcons().add(AppIcons.windowIcon());
+    stage.getIcons().addAll(AppIcons.windowIcons());
     stage.setMinWidth(980);
     stage.setMinHeight(640);
     stage.setScene(scene);

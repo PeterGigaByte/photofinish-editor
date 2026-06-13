@@ -8,6 +8,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.HeaderFade;
 import sk.rigo.photofinish.model.ImageFitMode;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,9 @@ class BrandingRendererTest {
     int height = 200;
     BrandingTemplate template = BrandingTemplate.defaults();
     template.setImageFitMode(ImageFitMode.ORIGINAL);
-    template.setAutoCropEnabled(false); // isolate the layout from auto-crop for a deterministic width
+    template.setAutoCropEnabled(false); // isolate the layout from cropping for a deterministic size
+    template.setCropVerticalEnabled(false);
+    template.setEnhanceEnabled(false);
     template.setHeaderEnabled(true);
     template.setHeaderHeightPercent(10.0);
     template.setResultsEnabled(true);
@@ -43,6 +46,8 @@ class BrandingRendererTest {
     BrandingTemplate template = BrandingTemplate.defaults();
     template.setImageFitMode(ImageFitMode.ORIGINAL);
     template.setAutoCropEnabled(false);
+    template.setCropVerticalEnabled(false);
+    template.setEnhanceEnabled(false);
     template.setHeaderEnabled(true);
     template.setHeaderHeightPercent(5.0); // very short header band
     template.setResultsEnabled(true);
@@ -61,6 +66,7 @@ class BrandingRendererTest {
     template.setAutoCropEnabled(false);
     template.setHeaderEnabled(true);
     template.setHeaderHeightPercent(30.0);
+    template.setHeaderFade(HeaderFade.RIGHT_TO_LEFT);
     template.setHeaderBackgroundColor("#0D5B91");
     template.setHeaderTitle(""); // keep the sampled band free of text
     template.setHeaderSubtitle("");

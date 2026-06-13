@@ -1,6 +1,7 @@
 package sk.rigo.photofinish.image;
 
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.HeaderFade;
 import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
 
@@ -42,8 +43,12 @@ public class BrandingRenderer {
 
   public BufferedImage render(BufferedImage source, Path sourcePath, BrandingTemplate template) throws IOException {
     // Step 1: trim the empty (no-participant) stretches from long strips, keeping the original pixels.
-    BufferedImage image = autoCropper.cropIfBeneficial(source, template.isAutoCropEnabled());
-    // Step 2: apply a light retouch (sharpen + contrast + saturation) so the photo looks better.
+    BufferedImage image = autoCropper.crop(
+        source,
+        template.isAutoCropEnabled(),
+        template.isCropBetweenParticipants(),
+        template.isCropVerticalEnabled());
+    // Step 2: apply an automatic, content-aware retouch so the photo looks better.
     image = imageEnhancer.enhanceIfEnabled(image, template.isEnhanceEnabled());
     // Step 3: build the poster (header, image, results, logos, text bar) around the resulting photo.
     PosterLayout layout = layout(image, template);
@@ -202,11 +207,17 @@ public class BrandingRenderer {
       return;
     }
 
-    // Fade the header background horizontally from the full colour on the right to transparent on the
-    // left, so the band is not a flat block and blends into the canvas towards the left.
+    // Paint the header background with the configured horizontal fade so the band is not a flat block.
     Color headerColor = ColorParser.parse(template.getHeaderBackgroundColor(), new Color(13, 91, 145));
-    Color fadedLeft = new Color(headerColor.getRed(), headerColor.getGreen(), headerColor.getBlue(), 0);
-    graphics.setPaint(new GradientPaint(0, 0, fadedLeft, output.getWidth(), 0, headerColor));
+    Color transparent = new Color(headerColor.getRed(), headerColor.getGreen(), headerColor.getBlue(), 0);
+    HeaderFade fade = template.getHeaderFade() == null ? HeaderFade.LEFT_TO_RIGHT : template.getHeaderFade();
+    switch (fade) {
+      case NONE -> graphics.setPaint(headerColor);
+      // Solid colour where the (left-aligned) text sits, fading out towards the right.
+      case LEFT_TO_RIGHT -> graphics.setPaint(new GradientPaint(0, 0, headerColor, output.getWidth(), 0, transparent));
+      case RIGHT_TO_LEFT -> graphics.setPaint(new GradientPaint(0, 0, transparent, output.getWidth(), 0, headerColor));
+      default -> graphics.setPaint(headerColor);
+    }
     graphics.fillRect(0, 0, output.getWidth(), height);
 
     // Horizontal padding follows the poster width; the vertical inset is bounded by the band height so

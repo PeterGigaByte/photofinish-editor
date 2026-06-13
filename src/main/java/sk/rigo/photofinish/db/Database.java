@@ -57,10 +57,13 @@ public class Database {
             canvas_height INTEGER NOT NULL DEFAULT 1920,
             image_fit_mode TEXT NOT NULL DEFAULT 'COVER',
             auto_crop_enabled INTEGER NOT NULL DEFAULT 1,
+            crop_between_participants INTEGER NOT NULL DEFAULT 0,
+            crop_vertical_enabled INTEGER NOT NULL DEFAULT 1,
             enhance_enabled INTEGER NOT NULL DEFAULT 1,
             canvas_background_color TEXT NOT NULL DEFAULT '#F6F8FA',
             header_enabled INTEGER NOT NULL DEFAULT 1,
             header_height_percent REAL NOT NULL DEFAULT 10,
+            header_fade TEXT NOT NULL DEFAULT 'LEFT_TO_RIGHT',
             header_background_color TEXT NOT NULL DEFAULT '#0D5B91',
             header_text_color TEXT NOT NULL DEFAULT '#FFFFFF',
             header_title TEXT NOT NULL DEFAULT 'EVENT TITLE',
@@ -112,7 +115,10 @@ public class Database {
     addColumnIfMissing(connection, "branding_templates", "canvas_height", "INTEGER NOT NULL DEFAULT 1920");
     addColumnIfMissing(connection, "branding_templates", "image_fit_mode", "TEXT NOT NULL DEFAULT 'COVER'");
     addColumnIfMissing(connection, "branding_templates", "auto_crop_enabled", "INTEGER NOT NULL DEFAULT 1");
+    addColumnIfMissing(connection, "branding_templates", "crop_between_participants", "INTEGER NOT NULL DEFAULT 0");
+    addColumnIfMissing(connection, "branding_templates", "crop_vertical_enabled", "INTEGER NOT NULL DEFAULT 1");
     addColumnIfMissing(connection, "branding_templates", "enhance_enabled", "INTEGER NOT NULL DEFAULT 1");
+    addColumnIfMissing(connection, "branding_templates", "header_fade", "TEXT NOT NULL DEFAULT 'LEFT_TO_RIGHT'");
     addColumnIfMissing(connection, "branding_templates", "canvas_background_color", "TEXT NOT NULL DEFAULT '#F6F8FA'");
     addColumnIfMissing(connection, "branding_templates", "header_enabled", "INTEGER NOT NULL DEFAULT 1");
     addColumnIfMissing(connection, "branding_templates", "header_height_percent", "REAL NOT NULL DEFAULT 10");

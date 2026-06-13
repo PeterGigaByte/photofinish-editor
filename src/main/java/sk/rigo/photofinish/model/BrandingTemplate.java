@@ -23,10 +23,13 @@ public class BrandingTemplate {
   private int canvasHeight;
   private ImageFitMode imageFitMode;
   private boolean autoCropEnabled;
+  private boolean cropBetweenParticipants;
+  private boolean cropVerticalEnabled;
   private boolean enhanceEnabled;
   private String canvasBackgroundColor;
   private boolean headerEnabled;
   private double headerHeightPercent;
+  private HeaderFade headerFade;
   private String headerBackgroundColor;
   private String headerTextColor;
   private String headerTitle;
@@ -63,10 +66,13 @@ public class BrandingTemplate {
     template.setCanvasHeight(1920);
     template.setImageFitMode(ImageFitMode.ORIGINAL);
     template.setAutoCropEnabled(true);
+    template.setCropBetweenParticipants(false);
+    template.setCropVerticalEnabled(true);
     template.setEnhanceEnabled(true);
     template.setCanvasBackgroundColor("#F6F8FA");
     template.setHeaderEnabled(true);
     template.setHeaderHeightPercent(10.0);
+    template.setHeaderFade(HeaderFade.LEFT_TO_RIGHT);
     template.setHeaderBackgroundColor("#0D5B91");
     template.setHeaderTextColor("#FFFFFF");
     template.setHeaderTitle("EVENT TITLE");
@@ -255,6 +261,22 @@ public class BrandingTemplate {
     this.autoCropEnabled = autoCropEnabled;
   }
 
+  public boolean isCropBetweenParticipants() {
+    return cropBetweenParticipants;
+  }
+
+  public void setCropBetweenParticipants(boolean cropBetweenParticipants) {
+    this.cropBetweenParticipants = cropBetweenParticipants;
+  }
+
+  public boolean isCropVerticalEnabled() {
+    return cropVerticalEnabled;
+  }
+
+  public void setCropVerticalEnabled(boolean cropVerticalEnabled) {
+    this.cropVerticalEnabled = cropVerticalEnabled;
+  }
+
   public boolean isEnhanceEnabled() {
     return enhanceEnabled;
   }
@@ -285,6 +307,14 @@ public class BrandingTemplate {
 
   public void setHeaderHeightPercent(double headerHeightPercent) {
     this.headerHeightPercent = headerHeightPercent;
+  }
+
+  public HeaderFade getHeaderFade() {
+    return headerFade;
+  }
+
+  public void setHeaderFade(HeaderFade headerFade) {
+    this.headerFade = headerFade;
   }
 
   public String getHeaderBackgroundColor() {

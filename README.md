@@ -12,8 +12,9 @@ Java 21 desktop application for automated branding of photofinish images.
 - Content-aware re-export: an unchanged file that was already exported is skipped, but new content arriving under the same name is re-exported (de-duplication uses the source size + last-modified fingerprint, not just the path).
 - Exported images keep the same base name as the input (only the extension follows the chosen output format).
 - Pure Java image processing with `BufferedImage`, `Graphics2D`, and `ImageIO`.
-- Auto-crop of the empty (no-participant) stretches from long photofinish strips — front, back, and the gaps between participants — keeping the original pixels (only the width changes) and a safety margin around each athlete.
-- Optional image retouch (mild sharpen, contrast, and saturation) to make the photo look crisper without an obviously processed look.
+- Auto-crop of the empty (no-participant) stretches from long photofinish strips: the empty front/back is always trimmed, empty bands above/below the athletes can be trimmed too (vertical crop), and removing the gaps *between* participants is an opt-in (off by default so the time scale stays continuous). The original pixels are kept (nothing is scaled) and a safety margin is preserved around each athlete.
+- Automatic image enhancement: auto-levels read from the photo's own histogram, plus adaptive saturation and a mild sharpen — flat strips get more contrast while well-exposed ones are barely touched.
+- Configurable header background fade (off, fade out to the right, or fade out to the left), with a soft shadow on the header text for legibility.
 - Poster-style canvas controls for portrait/social output, including canvas size, background color, and image fit mode. The `Keep original size` fit mode builds the poster (header, results, logos, text bar) around the native-size photo so the photo is never scaled — the poster width follows the (cropped) photo width.
 - Top header controls with event title, subtitle, header colors, and left/right logo images.
 - Logo overlay controls: file, position, size, opacity, and x/y offset.
@@ -50,7 +51,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.8.jar
+java -jar target\photofinish-app-0.1.9.jar
 ```
 
 ## Build a Windows installer
@@ -63,10 +64,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.8 `
+  --app-version 0.1.9 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.8.jar `
+  --main-jar photofinish-app-0.1.9.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --icon target\app-icon.ico `

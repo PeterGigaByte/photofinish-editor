@@ -21,7 +21,7 @@ class PhotofinishAutoCropperTest {
     int participantEnd = 600;
     BufferedImage strip = stripWithParticipant(width, height, participantStart, participantEnd);
 
-    BufferedImage cropped = cropper.cropIfBeneficial(strip, true);
+    BufferedImage cropped = cropper.crop(strip, true, false, false);
 
     // Empty leading/trailing track is removed, so the result is narrower than the source...
     assertTrue(cropped.getWidth() < width, "expected empty ends to be cropped");
@@ -46,7 +46,7 @@ class PhotofinishAutoCropperTest {
     graphics.fillRect(1100, 0, 100, height); // participant B (large empty gap in between)
     graphics.dispose();
 
-    BufferedImage cropped = cropper.cropIfBeneficial(strip, true);
+    BufferedImage cropped = cropper.crop(strip, true, true, false); // between-participants ON
 
     int spanBetweenClusterEdges = 1200 - 200; // first participant start to second participant end
     // The empty front, back and the gap between the two participants are removed...
@@ -74,7 +74,7 @@ class PhotofinishAutoCropperTest {
     graphics.fillRect(700, 0, 600, height); // participant 700..1299
     graphics.dispose();
 
-    BufferedImage cropped = cropper.cropIfBeneficial(strip, true);
+    BufferedImage cropped = cropper.crop(strip, true, false, false);
 
     assertTrue(cropped.getWidth() < width, "empty ends must still be removed");
     assertTrue(cropped.getWidth() >= 600, "the colour-only participant must be fully kept, not cropped");
@@ -82,9 +82,53 @@ class PhotofinishAutoCropperTest {
   }
 
   @Test
+  void endOnlyByDefaultKeepsGapBetweenParticipants() {
+    int width = 1500;
+    int height = 200;
+    BufferedImage strip = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = strip.createGraphics();
+    graphics.setColor(new Color(128, 128, 128));
+    graphics.fillRect(0, 0, width, height);
+    graphics.setColor(new Color(20, 20, 20));
+    graphics.fillRect(200, 0, 100, height); // participant A
+    graphics.fillRect(1100, 0, 100, height); // participant B
+    graphics.dispose();
+
+    BufferedImage cropped = cropper.crop(strip, true, false, false); // between-participants OFF
+
+    // Only the empty front/back is trimmed; the gap between the two participants is preserved, so
+    // the result still spans from the first to the last participant (keeps the time scale honest).
+    assertTrue(cropped.getWidth() < width, "empty ends must be removed");
+    assertTrue(cropped.getWidth() >= 1200 - 200, "the gap between participants must be kept when disabled");
+    assertEquals(height, cropped.getHeight());
+  }
+
+  @Test
+  void trimsEmptyTopAndBottomWhenVerticalEnabled() {
+    int width = 2000;
+    int height = 600;
+    BufferedImage strip = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = strip.createGraphics();
+    graphics.setColor(new Color(128, 128, 128)); // uniform empty bands top and bottom
+    graphics.fillRect(0, 0, width, height);
+    // A band of athletes in the middle: high horizontal variation (alternating bars).
+    for (int x = 0; x < width; x++) {
+      graphics.setColor((x / 12) % 2 == 0 ? new Color(15, 15, 15) : new Color(235, 235, 235));
+      graphics.fillRect(x, 200, 1, 200); // rows 200..399
+    }
+    graphics.dispose();
+
+    BufferedImage cropped = cropper.crop(strip, false, false, true);
+
+    assertEquals(width, cropped.getWidth(), "width must be unchanged by a vertical crop");
+    assertTrue(cropped.getHeight() < height, "empty top/bottom bands must be trimmed");
+    assertTrue(cropped.getHeight() >= 200, "the athlete band must be preserved");
+  }
+
+  @Test
   void leavesShortImagesUntouched() {
     BufferedImage square = stripWithParticipant(200, 200, 80, 120);
-    assertSame(square, cropper.cropIfBeneficial(square, true), "non-long images must not be cropped");
+    assertSame(square, cropper.crop(square, true, true, true), "non-long images must not be cropped");
   }
 
   @Test
@@ -94,13 +138,13 @@ class PhotofinishAutoCropperTest {
     graphics.setColor(new Color(128, 128, 128));
     graphics.fillRect(0, 0, 1000, 200);
     graphics.dispose();
-    assertSame(blank, cropper.cropIfBeneficial(blank, true), "a strip with no participant must be left intact");
+    assertSame(blank, cropper.crop(blank, true, false, false), "a strip with no participant must be left intact");
   }
 
   @Test
-  void respectsDisabledFlag() {
+  void respectsDisabledFlags() {
     BufferedImage strip = stripWithParticipant(1000, 200, 400, 600);
-    assertSame(strip, cropper.cropIfBeneficial(strip, false), "cropping must be skipped when disabled");
+    assertSame(strip, cropper.crop(strip, false, false, false), "cropping must be skipped when all flags are off");
   }
 
   private static BufferedImage stripWithParticipant(int width, int height, int start, int end) {

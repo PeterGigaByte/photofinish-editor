@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "0.1.8",
-    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.8/PhotoFinishBrandingStudio-0.1.8.msi",
-    "sha256":  "8078E1DC3A65846EB35DA6EF8ED3248487EE28791204F501DF8B7D12A7EEA452",
-    "notes":  "Fix auto-crop clipping participants: detection now uses colour distance with a robust low threshold and larger safety margins, and never collapses small gaps. Athletes (including those matching the track brightness but differing in colour) are no longer cropped."
+    "version":  "0.1.9",
+    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.9/PhotoFinishBrandingStudio-0.1.9.msi",
+    "sha256":  "3621DA69FDCA2C1FB5BE5D3B08BE7BDA4854FB6EF796B7D4A85526A4E3ABA3D3",
+    "notes":  "Vertical auto-crop of empty space above/below athletes; between-participant gap removal is now opt-in (off by default, keeps the time scale honest); automatic histogram-based image enhancement; configurable header fade (default fades out to the right, with a text shadow); crisp multi-size window icon."
 }

@@ -2,6 +2,7 @@ package sk.rigo.photofinish.repository;
 
 import sk.rigo.photofinish.db.Database;
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.HeaderFade;
 import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
 import sk.rigo.photofinish.model.OutputFormat;
@@ -78,9 +79,10 @@ public class BrandingTemplateRepository {
                header_title, header_subtitle, header_left_logo_path, header_right_logo_path,
                results_enabled, results_height_percent, results_title, results_rows_text,
                results_background_color, results_header_color, results_accent_color,
-               auto_crop_enabled, enhance_enabled, updated_at
+               auto_crop_enabled, enhance_enabled,
+               crop_between_participants, crop_vertical_enabled, header_fade, updated_at
              )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              """, Statement.RETURN_GENERATED_KEYS)) {
       bindTemplate(statement, template);
       statement.executeUpdate();
@@ -107,11 +109,12 @@ public class BrandingTemplateRepository {
                  header_left_logo_path = ?, header_right_logo_path = ?, results_enabled = ?,
                  results_height_percent = ?, results_title = ?, results_rows_text = ?,
                  results_background_color = ?, results_header_color = ?, results_accent_color = ?,
-                 auto_crop_enabled = ?, enhance_enabled = ?, updated_at = ?
+                 auto_crop_enabled = ?, enhance_enabled = ?,
+                 crop_between_participants = ?, crop_vertical_enabled = ?, header_fade = ?, updated_at = ?
              WHERE id = ?
              """)) {
       bindTemplate(statement, template);
-      statement.setLong(39, template.getId());
+      statement.setLong(42, template.getId());
       statement.executeUpdate();
     }
   }
@@ -154,7 +157,10 @@ public class BrandingTemplateRepository {
     statement.setString(35, template.getResultsAccentColor());
     statement.setInt(36, template.isAutoCropEnabled() ? 1 : 0);
     statement.setInt(37, template.isEnhanceEnabled() ? 1 : 0);
-    statement.setString(38, Instant.now().toString());
+    statement.setInt(38, template.isCropBetweenParticipants() ? 1 : 0);
+    statement.setInt(39, template.isCropVerticalEnabled() ? 1 : 0);
+    statement.setString(40, (template.getHeaderFade() == null ? HeaderFade.LEFT_TO_RIGHT : template.getHeaderFade()).name());
+    statement.setString(41, Instant.now().toString());
   }
 
   private static BrandingTemplate map(ResultSet resultSet) throws SQLException {
@@ -181,9 +187,12 @@ public class BrandingTemplateRepository {
     template.setImageFitMode(ImageFitMode.valueOf(resultSet.getString("image_fit_mode")));
     template.setAutoCropEnabled(resultSet.getInt("auto_crop_enabled") == 1);
     template.setEnhanceEnabled(resultSet.getInt("enhance_enabled") == 1);
+    template.setCropBetweenParticipants(resultSet.getInt("crop_between_participants") == 1);
+    template.setCropVerticalEnabled(resultSet.getInt("crop_vertical_enabled") == 1);
     template.setCanvasBackgroundColor(resultSet.getString("canvas_background_color"));
     template.setHeaderEnabled(resultSet.getInt("header_enabled") == 1);
     template.setHeaderHeightPercent(resultSet.getDouble("header_height_percent"));
+    template.setHeaderFade(HeaderFade.valueOf(resultSet.getString("header_fade")));
     template.setHeaderBackgroundColor(resultSet.getString("header_background_color"));
     template.setHeaderTextColor(resultSet.getString("header_text_color"));
     template.setHeaderTitle(resultSet.getString("header_title"));
