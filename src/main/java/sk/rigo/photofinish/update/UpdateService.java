@@ -36,11 +36,17 @@ public class UpdateService {
         .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     if (response.statusCode() < 200 || response.statusCode() >= 300) {
-      throw new IOException("Update check failed with HTTP " + response.statusCode());
+      if (response.statusCode() == 404) {
+        throw new IOException("No latest.json was found at the configured update URL. Check Folder settings.");
+      }
+      throw new IOException("Update check failed with HTTP " + response.statusCode() + ". Check Folder settings.");
     }
 
     String body = response.body();
     String latestVersion = field(body, "version");
+    if (latestVersion.isBlank()) {
+      throw new IOException("latest.json does not contain a version field");
+    }
     String installerUrl = field(body, "installerUrl");
     if (installerUrl.isBlank()) {
       installerUrl = field(body, "url");

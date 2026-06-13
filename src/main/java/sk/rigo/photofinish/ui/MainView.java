@@ -370,7 +370,7 @@ public class MainView {
           lastErrors.setText(builder.toString());
         }))
         .exceptionally(ex -> {
-          Platform.runLater(() -> statusLine.setText("Dashboard refresh failed: " + ex.getMessage()));
+          Platform.runLater(() -> statusLine.setText("Dashboard refresh failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -386,7 +386,7 @@ public class MainView {
         }, uiExecutor)
         .thenAccept(files -> Platform.runLater(() -> historyTable.setItems(FXCollections.observableArrayList(files))))
         .exceptionally(ex -> {
-          Platform.runLater(() -> statusLine.setText("History refresh failed: " + ex.getMessage()));
+          Platform.runLater(() -> statusLine.setText("History refresh failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -418,7 +418,7 @@ public class MainView {
       }
     }, uiExecutor).thenRun(() -> Platform.runLater(() -> statusLine.setText("Settings saved.")))
         .exceptionally(ex -> {
-          Platform.runLater(() -> statusLine.setText("Settings save failed: " + ex.getMessage()));
+          Platform.runLater(() -> statusLine.setText("Settings save failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -442,7 +442,7 @@ public class MainView {
         }, uiExecutor)
         .thenAccept(template -> Platform.runLater(() -> setTemplateFields(template)))
         .exceptionally(ex -> {
-          Platform.runLater(() -> statusLine.setText("Template load failed: " + ex.getMessage()));
+          Platform.runLater(() -> statusLine.setText("Template load failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -500,7 +500,7 @@ public class MainView {
           statusLine.setText("Template saved.");
         }))
         .exceptionally(ex -> {
-          Platform.runLater(() -> statusLine.setText("Template save failed: " + ex.getMessage()));
+          Platform.runLater(() -> statusLine.setText("Template save failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -529,7 +529,7 @@ public class MainView {
           }
         }))
         .exceptionally(ex -> {
-          Platform.runLater(() -> updateStatusLabel.setText("Update check failed: " + ex.getMessage()));
+          Platform.runLater(() -> updateStatusLabel.setText("Update check failed: " + userMessage(ex)));
           return null;
         });
   }
@@ -552,7 +552,7 @@ public class MainView {
         .thenAccept(path -> Platform.runLater(() -> updateStatusLabel.setText("Installer downloaded to " + path)))
         .exceptionally(ex -> {
           Platform.runLater(() -> {
-            updateStatusLabel.setText("Download failed: " + ex.getMessage());
+            updateStatusLabel.setText("Download failed: " + userMessage(ex));
             downloadUpdateButton.setDisable(false);
           });
           return null;
@@ -651,6 +651,21 @@ public class MainView {
 
   private static String nullToEmpty(String value) {
     return value == null ? "" : value;
+  }
+
+  private static String userMessage(Throwable throwable) {
+    Throwable current = throwable;
+    while (current.getCause() != null
+        && (current instanceof java.util.concurrent.CompletionException
+        || current instanceof IllegalStateException)) {
+      current = current.getCause();
+    }
+
+    String message = current.getMessage();
+    if (message == null || message.isBlank()) {
+      return current.getClass().getSimpleName();
+    }
+    return message;
   }
 
   private record DashboardData(ProcessingSummary summary, List<ProcessingError> errors) {

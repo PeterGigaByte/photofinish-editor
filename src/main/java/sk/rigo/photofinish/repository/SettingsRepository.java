@@ -13,6 +13,8 @@ import java.util.Map;
 
 public class SettingsRepository {
 
+  private static final String LEGACY_PLACEHOLDER_UPDATE_URL = "https://example.com/photofinish/latest.json";
+
   private final Database database;
   private final AppPaths paths;
 
@@ -34,11 +36,12 @@ public class SettingsRepository {
     AppSettings settings = defaults();
     settings.setInputDirectory(values.getOrDefault("inputDirectory", settings.getInputDirectory()));
     settings.setExportDirectory(values.getOrDefault("exportDirectory", settings.getExportDirectory()));
-    settings.setLatestJsonUrl(values.getOrDefault("latestJsonUrl", settings.getLatestJsonUrl()));
+    String latestJsonUrl = values.getOrDefault("latestJsonUrl", settings.getLatestJsonUrl());
+    settings.setLatestJsonUrl(normalizeLatestJsonUrl(latestJsonUrl));
     settings.setActiveTemplateId(parseLong(values.get("activeTemplateId"), settings.getActiveTemplateId()));
     settings.setAutoStartWatcher(Boolean.parseBoolean(values.getOrDefault("autoStartWatcher", "false")));
 
-    if (values.isEmpty()) {
+    if (values.isEmpty() || LEGACY_PLACEHOLDER_UPDATE_URL.equals(latestJsonUrl)) {
       save(settings);
     }
     return settings;
@@ -58,7 +61,7 @@ public class SettingsRepository {
     AppSettings settings = new AppSettings();
     settings.setInputDirectory(paths.defaultInputDirectory().toString());
     settings.setExportDirectory(paths.defaultExportDirectory().toString());
-    settings.setLatestJsonUrl("https://example.com/photofinish/latest.json");
+    settings.setLatestJsonUrl("");
     settings.setActiveTemplateId(0L);
     settings.setAutoStartWatcher(false);
     return settings;
@@ -85,5 +88,12 @@ public class SettingsRepository {
     } catch (NumberFormatException ex) {
       return defaultValue;
     }
+  }
+
+  private static String normalizeLatestJsonUrl(String value) {
+    if (value == null || value.isBlank() || LEGACY_PLACEHOLDER_UPDATE_URL.equals(value)) {
+      return "";
+    }
+    return value.trim();
   }
 }
