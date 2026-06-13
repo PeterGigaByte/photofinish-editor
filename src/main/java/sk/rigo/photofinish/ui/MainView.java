@@ -5,6 +5,7 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -20,6 +21,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -29,6 +32,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import sk.rigo.photofinish.config.AppSettings;
+import sk.rigo.photofinish.image.BrandingRenderer;
 import sk.rigo.photofinish.model.BrandingTemplate;
 import sk.rigo.photofinish.model.LogoPosition;
 import sk.rigo.photofinish.model.OutputFormat;
@@ -39,7 +43,18 @@ import sk.rigo.photofinish.model.ProcessingSummary;
 import sk.rigo.photofinish.service.AppContext;
 import sk.rigo.photofinish.update.UpdateInfo;
 
+import javax.imageio.ImageIO;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -88,6 +103,9 @@ public class MainView {
   private TextField fontNameField;
   private Spinner<Integer> fontSizeField;
   private ComboBox<OutputFormat> outputFormatField;
+  private TextField previewImagePathField;
+  private ImageView templatePreviewImage;
+  private Label templatePreviewStatus;
 
   private UpdateInfo latestUpdateInfo;
   private Label updateStatusLabel;
@@ -220,11 +238,28 @@ public class MainView {
     fontNameField = new TextField();
     fontSizeField = spinner(8, 160, 32);
     outputFormatField = new ComboBox<>(FXCollections.observableArrayList(OutputFormat.values()));
+    previewImagePathField = new TextField();
+    previewImagePathField.setEditable(false);
+    previewImagePathField.setPromptText("Default preview image");
+    templatePreviewImage = new ImageView();
+    templatePreviewImage.setPreserveRatio(true);
+    templatePreviewImage.setFitWidth(520);
+    templatePreviewImage.setFitHeight(340);
+    templatePreviewStatus = new Label("Default preview image");
 
     Button browseLogo = new Button("Browse");
     browseLogo.setOnAction(event -> chooseLogo());
     Button save = new Button("Save template");
     save.setOnAction(event -> saveTemplate());
+    Button choosePreview = new Button("Choose sample");
+    choosePreview.setOnAction(event -> choosePreviewImage());
+    Button defaultPreview = new Button("Use default");
+    defaultPreview.setOnAction(event -> {
+      previewImagePathField.clear();
+      refreshTemplatePreview();
+    });
+    Button refreshPreview = new Button("Refresh preview");
+    refreshPreview.setOnAction(event -> refreshTemplatePreview());
 
     GridPane grid = formGrid();
     int row = 0;
@@ -260,10 +295,21 @@ public class MainView {
     grid.add(outputFormatField, 1, row++, 2, 1);
     grid.add(save, 1, row);
 
-    VBox content = new VBox(12, sectionTitle("Branding template"), grid);
+    HBox previewActions = new HBox(8, previewImagePathField, choosePreview, defaultPreview, refreshPreview);
+    HBox.setHgrow(previewImagePathField, Priority.ALWAYS);
+    VBox preview = new VBox(
+        10,
+        sectionTitle("Preview"),
+        templatePreviewStatus,
+        previewActions,
+        previewFrame(templatePreviewImage)
+    );
+
+    VBox content = new VBox(18, sectionTitle("Branding template"), grid, preview);
     content.setPadding(new Insets(16));
     ScrollPane scrollPane = new ScrollPane(content);
     scrollPane.setFitToWidth(true);
+    Platform.runLater(this::refreshTemplatePreview);
     return scrollPane;
   }
 
@@ -588,6 +634,9 @@ public class MainView {
     fontNameField.setText(template.getFontName());
     fontSizeField.getValueFactory().setValue(template.getFontSize());
     outputFormatField.setValue(template.getOutputFormat());
+    if (templatePreviewImage != null) {
+      refreshTemplatePreview();
+    }
   }
 
   private void chooseDirectory(TextField field) {
@@ -609,6 +658,73 @@ public class MainView {
     if (selected != null) {
       logoPathField.setText(selected.toPath().toString());
     }
+  }
+
+  private void choosePreviewImage() {
+    FileChooser chooser = new FileChooser();
+    chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg"));
+    File selected = chooser.showOpenDialog(root.getScene().getWindow());
+    if (selected != null) {
+      previewImagePathField.setText(selected.toPath().toString());
+      refreshTemplatePreview();
+    }
+  }
+
+  private void refreshTemplatePreview() {
+    BrandingTemplate template = templateFromFields();
+    String previewPath = previewImagePathField.getText();
+    templatePreviewStatus.setText("Rendering preview...");
+
+    CompletableFuture
+        .supplyAsync(() -> {
+          try {
+            BufferedImage rendered;
+            BrandingRenderer renderer = new BrandingRenderer();
+            if (previewPath == null || previewPath.isBlank()) {
+              rendered = renderer.render(defaultPreviewImage(), Path.of("preview-sample.jpg"), template);
+            } else {
+              rendered = renderer.render(Path.of(previewPath), template);
+            }
+            return toFxImage(rendered);
+          } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+          }
+        }, uiExecutor)
+        .thenAccept(image -> Platform.runLater(() -> {
+          templatePreviewImage.setImage(image);
+          templatePreviewStatus.setText(
+              previewPath == null || previewPath.isBlank()
+                  ? "Preview rendered from default sample."
+                  : "Preview rendered from selected sample."
+          );
+        }))
+        .exceptionally(ex -> {
+          Platform.runLater(() -> {
+            templatePreviewImage.setImage(null);
+            templatePreviewStatus.setText("Preview failed: " + userMessage(ex));
+          });
+          return null;
+        });
+  }
+
+  private BrandingTemplate templateFromFields() {
+    BrandingTemplate template = BrandingTemplate.defaults();
+    template.setName(templateNameField.getText().trim());
+    template.setLogoPath(logoPathField.getText().trim());
+    template.setLogoPosition(valueOrDefault(logoPositionField.getValue(), LogoPosition.BOTTOM_RIGHT));
+    template.setLogoScalePercent(logoScaleField.getValue());
+    template.setLogoOpacity(logoOpacityField.getValue());
+    template.setOffsetX(offsetXField.getValue());
+    template.setOffsetY(offsetYField.getValue());
+    template.setTextBarEnabled(textBarEnabledField.isSelected());
+    template.setTextTemplate(textTemplateField.getText());
+    template.setTextBarHeightPercent(textBarHeightField.getValue());
+    template.setTextBarColor(textBarColorField.getText().trim());
+    template.setTextColor(textColorField.getText().trim());
+    template.setFontName(fontNameField.getText().trim());
+    template.setFontSize(fontSizeField.getValue());
+    template.setOutputFormat(valueOrDefault(outputFormatField.getValue(), OutputFormat.JPG));
+    return template;
   }
 
   private static GridPane formGrid() {
@@ -644,6 +760,15 @@ public class MainView {
     return new VBox(4, titleLabel, value);
   }
 
+  private static Node previewFrame(ImageView imageView) {
+    BorderPane frame = new BorderPane(imageView);
+    frame.setMinHeight(360);
+    frame.setPrefHeight(380);
+    frame.setStyle("-fx-background-color: #202327; -fx-border-color: #d9dee5; -fx-border-radius: 4px;");
+    BorderPane.setAlignment(imageView, Pos.CENTER);
+    return frame;
+  }
+
   private static Label sectionTitle(String text) {
     Label label = new Label(text);
     label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
@@ -671,6 +796,50 @@ public class MainView {
       return current.getClass().getSimpleName();
     }
     return message;
+  }
+
+  private static <T> T valueOrDefault(T value, T defaultValue) {
+    return value == null ? defaultValue : value;
+  }
+
+  private static Image toFxImage(BufferedImage image) throws IOException {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    ImageIO.write(image, "png", outputStream);
+    return new Image(new ByteArrayInputStream(outputStream.toByteArray()));
+  }
+
+  private static BufferedImage defaultPreviewImage() {
+    int width = 1600;
+    int height = 900;
+    BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = image.createGraphics();
+    try {
+      graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+      graphics.setPaint(new GradientPaint(0, 0, new Color(34, 44, 58), width, height, new Color(172, 182, 190)));
+      graphics.fillRect(0, 0, width, height);
+
+      graphics.setColor(new Color(235, 238, 242, 210));
+      graphics.fillRect(0, height / 2 - 38, width, 76);
+      graphics.setColor(new Color(35, 41, 48));
+      graphics.setStroke(new BasicStroke(3f));
+      graphics.drawLine(0, height / 2, width, height / 2);
+
+      graphics.setColor(new Color(230, 35, 35));
+      graphics.fillRect(width / 2 - 4, 70, 8, height - 140);
+      graphics.setColor(new Color(255, 255, 255, 210));
+      graphics.setFont(new Font("Arial", Font.BOLD, 46));
+      graphics.drawString("PHOTO FINISH PREVIEW", 72, 96);
+
+      graphics.setFont(new Font("Arial", Font.PLAIN, 30));
+      graphics.drawString("Generated sample image", 72, 145);
+
+      graphics.setFont(new Font("Arial", Font.BOLD, 96));
+      graphics.setColor(new Color(255, 255, 255, 165));
+      graphics.drawString("12.345", width - 430, height / 2 - 70);
+    } finally {
+      graphics.dispose();
+    }
+    return image;
   }
 
   private record DashboardData(ProcessingSummary summary, List<ProcessingError> errors) {

@@ -39,6 +39,20 @@ public class BrandingRenderer {
     return output;
   }
 
+  public BufferedImage render(BufferedImage source, Path sourcePath, BrandingTemplate template) throws IOException {
+    BufferedImage output = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+    Graphics2D graphics = output.createGraphics();
+    try {
+      applyQualityHints(graphics);
+      graphics.drawImage(source, 0, 0, null);
+      drawTextBar(graphics, sourcePath, output, template);
+      drawLogo(graphics, output, template);
+    } finally {
+      graphics.dispose();
+    }
+    return output;
+  }
+
   private void drawTextBar(Graphics2D graphics, Path sourcePath, BufferedImage output, BrandingTemplate template) {
     if (!template.isTextBarEnabled()) {
       return;

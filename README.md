@@ -13,6 +13,7 @@ Java 21 desktop application for automated branding of photofinish images.
 - Pure Java image processing with `BufferedImage`, `Graphics2D`, and `ImageIO`.
 - Logo overlay controls: file, position, size, opacity, and x/y offset.
 - Optional bottom text bar with template placeholders.
+- Template preview using either a selected sample image or a generated default sample.
 - Pending export state when the export destination is unavailable, plus retry action.
 - Update check/download service for a configurable `latest.json` URL with semantic version comparison and optional SHA-256 verification.
 - Maven package setup suitable for `jpackage`.
@@ -42,7 +43,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.2.jar
+java -jar target\photofinish-app-0.1.3.jar
 ```
 
 ## Build a Windows installer
@@ -54,10 +55,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.2 `
+  --app-version 0.1.3 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.2.jar `
+  --main-jar photofinish-app-0.1.3.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --win-dir-chooser `

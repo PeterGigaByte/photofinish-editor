@@ -1,6 +1,6 @@
 {
-  "version": "0.1.2",
-  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.2/PhotoFinishBrandingStudio-0.1.2.msi",
-  "sha256": "2A56513ABC2EFD86B7278BE0428107C1F954E08B4B6EEC43E446CCCE03F5529F",
-  "notes": "Adds automatic installer launch after update download. The app closes itself so the MSI can upgrade the installed files."
+  "version": "0.1.3",
+  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.3/PhotoFinishBrandingStudio-0.1.3.msi",
+  "sha256": "1CED729A52B521CED46376896E80DA85301226D1EE5752418EB2D13A2A8C219E",
+  "notes": "Adds a Template tab preview that renders current template settings against a selected sample image or a generated default sample."
 }
