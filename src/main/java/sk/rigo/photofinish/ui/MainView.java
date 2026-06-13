@@ -34,6 +34,7 @@ import javafx.stage.FileChooser;
 import sk.rigo.photofinish.config.AppSettings;
 import sk.rigo.photofinish.image.BrandingRenderer;
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
 import sk.rigo.photofinish.model.OutputFormat;
 import sk.rigo.photofinish.model.ProcessedFile;
@@ -103,6 +104,26 @@ public class MainView {
   private TextField fontNameField;
   private Spinner<Integer> fontSizeField;
   private ComboBox<OutputFormat> outputFormatField;
+  private CheckBox canvasEnabledField;
+  private Spinner<Integer> canvasWidthField;
+  private Spinner<Integer> canvasHeightField;
+  private ComboBox<ImageFitMode> imageFitModeField;
+  private TextField canvasBackgroundColorField;
+  private CheckBox headerEnabledField;
+  private Slider headerHeightField;
+  private TextField headerBackgroundColorField;
+  private TextField headerTextColorField;
+  private TextField headerTitleField;
+  private TextField headerSubtitleField;
+  private TextField headerLeftLogoPathField;
+  private TextField headerRightLogoPathField;
+  private CheckBox resultsEnabledField;
+  private Slider resultsHeightField;
+  private TextField resultsTitleField;
+  private TextArea resultsRowsField;
+  private TextField resultsBackgroundColorField;
+  private TextField resultsHeaderColorField;
+  private TextField resultsAccentColorField;
   private TextField previewImagePathField;
   private ImageView templatePreviewImage;
   private Label templatePreviewStatus;
@@ -132,6 +153,7 @@ public class MainView {
   }
 
   private void build() {
+    root.getStyleClass().add("app-root");
     root.setTop(header());
     root.setCenter(tabs());
     root.setBottom(statusLine);
@@ -141,14 +163,15 @@ public class MainView {
 
   private Parent header() {
     Label title = new Label(context.metadata().name());
-    title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+    title.getStyleClass().add("app-title");
     Label version = new Label("Version " + context.metadata().version());
+    version.getStyleClass().add("app-version");
     Region spacer = new Region();
     HBox.setHgrow(spacer, Priority.ALWAYS);
     HBox box = new HBox(12, title, version, spacer);
     box.setAlignment(Pos.CENTER_LEFT);
     box.setPadding(new Insets(12));
-    box.setStyle("-fx-background-color: #f4f6f8; -fx-border-color: transparent transparent #d9dee5 transparent;");
+    box.getStyleClass().add("app-header");
     return box;
   }
 
@@ -169,11 +192,11 @@ public class MainView {
   }
 
   private Parent dashboard() {
-    Button start = new Button("Start watcher");
+    Button start = new Button("▶ Start watcher");
     start.setOnAction(event -> context.watcherService().start());
-    Button stop = new Button("Stop watcher");
+    Button stop = new Button("■ Stop watcher");
     stop.setOnAction(event -> context.watcherService().stop());
-    Button refresh = new Button("Refresh");
+    Button refresh = new Button("⟳ Refresh");
     refresh.setOnAction(event -> refreshAll());
 
     lastErrors.setEditable(false);
@@ -198,11 +221,11 @@ public class MainView {
     latestJsonUrlField = new TextField();
     autoStartWatcherField = new CheckBox("Start watcher when app opens");
 
-    Button browseInput = new Button("Browse");
+    Button browseInput = new Button("▣ Browse");
     browseInput.setOnAction(event -> chooseDirectory(inputDirectoryField));
-    Button browseExport = new Button("Browse");
+    Button browseExport = new Button("▣ Browse");
     browseExport.setOnAction(event -> chooseDirectory(exportDirectoryField));
-    Button save = new Button("Save settings");
+    Button save = new Button("✓ Save settings");
     save.setOnAction(event -> saveSettings());
 
     GridPane grid = formGrid();
@@ -238,6 +261,28 @@ public class MainView {
     fontNameField = new TextField();
     fontSizeField = spinner(8, 160, 32);
     outputFormatField = new ComboBox<>(FXCollections.observableArrayList(OutputFormat.values()));
+    canvasEnabledField = new CheckBox("Use poster canvas");
+    canvasWidthField = spinner(320, 5000, 1080);
+    canvasHeightField = spinner(320, 5000, 1920);
+    imageFitModeField = new ComboBox<>(FXCollections.observableArrayList(ImageFitMode.values()));
+    canvasBackgroundColorField = new TextField();
+    headerEnabledField = new CheckBox("Show top header");
+    headerHeightField = slider(5, 30, 10);
+    headerBackgroundColorField = new TextField();
+    headerTextColorField = new TextField();
+    headerTitleField = new TextField();
+    headerSubtitleField = new TextField();
+    headerLeftLogoPathField = new TextField();
+    headerRightLogoPathField = new TextField();
+    resultsEnabledField = new CheckBox("Show results table");
+    resultsHeightField = slider(10, 45, 24);
+    resultsTitleField = new TextField();
+    resultsRowsField = new TextArea();
+    resultsRowsField.setPrefRowCount(5);
+    resultsRowsField.setWrapText(false);
+    resultsBackgroundColorField = new TextField();
+    resultsHeaderColorField = new TextField();
+    resultsAccentColorField = new TextField();
     previewImagePathField = new TextField();
     previewImagePathField.setEditable(false);
     previewImagePathField.setPromptText("Default preview image");
@@ -247,24 +292,58 @@ public class MainView {
     templatePreviewImage.setFitHeight(340);
     templatePreviewStatus = new Label("Default preview image");
 
-    Button browseLogo = new Button("Browse");
-    browseLogo.setOnAction(event -> chooseLogo());
-    Button save = new Button("Save template");
+    Button browseLogo = new Button("▣ Browse");
+    browseLogo.setOnAction(event -> chooseImageInto(logoPathField));
+    Button browseLeftHeaderLogo = new Button("▣ Browse");
+    browseLeftHeaderLogo.setOnAction(event -> chooseImageInto(headerLeftLogoPathField));
+    Button browseRightHeaderLogo = new Button("▣ Browse");
+    browseRightHeaderLogo.setOnAction(event -> chooseImageInto(headerRightLogoPathField));
+    Button save = new Button("✓ Save template");
     save.setOnAction(event -> saveTemplate());
-    Button choosePreview = new Button("Choose sample");
+    Button choosePreview = new Button("▣ Choose sample");
     choosePreview.setOnAction(event -> choosePreviewImage());
-    Button defaultPreview = new Button("Use default");
+    Button defaultPreview = new Button("↺ Use default");
     defaultPreview.setOnAction(event -> {
       previewImagePathField.clear();
       refreshTemplatePreview();
     });
-    Button refreshPreview = new Button("Refresh preview");
+    Button refreshPreview = new Button("⟳ Refresh preview");
     refreshPreview.setOnAction(event -> refreshTemplatePreview());
 
     GridPane grid = formGrid();
     int row = 0;
     grid.add(new Label("Template name"), 0, row);
     grid.add(templateNameField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("Poster canvas"), 0, row++, 3, 1);
+    grid.add(canvasEnabledField, 1, row++, 2, 1);
+    grid.add(new Label("Canvas size"), 0, row);
+    grid.add(new HBox(8, canvasWidthField, new Label("x"), canvasHeightField), 1, row++, 2, 1);
+    grid.add(new Label("Image fit"), 0, row);
+    grid.add(imageFitModeField, 1, row++, 2, 1);
+    grid.add(new Label("Canvas background"), 0, row);
+    grid.add(canvasBackgroundColorField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("Top header"), 0, row++, 3, 1);
+    grid.add(headerEnabledField, 1, row++, 2, 1);
+    grid.add(new Label("Header height (%)"), 0, row);
+    grid.add(headerHeightField, 1, row++, 2, 1);
+    grid.add(new Label("Header background"), 0, row);
+    grid.add(headerBackgroundColorField, 1, row++, 2, 1);
+    grid.add(new Label("Header text color"), 0, row);
+    grid.add(headerTextColorField, 1, row++, 2, 1);
+    grid.add(new Label("Header title"), 0, row);
+    grid.add(headerTitleField, 1, row++, 2, 1);
+    grid.add(new Label("Header subtitle"), 0, row);
+    grid.add(headerSubtitleField, 1, row++, 2, 1);
+    grid.add(new Label("Left header logo"), 0, row);
+    grid.add(headerLeftLogoPathField, 1, row);
+    grid.add(browseLeftHeaderLogo, 2, row++);
+    grid.add(new Label("Right header logo"), 0, row);
+    grid.add(headerRightLogoPathField, 1, row);
+    grid.add(browseRightHeaderLogo, 2, row++);
+
+    grid.add(sectionTitle("Overlay logo"), 0, row++, 3, 1);
     grid.add(new Label("Logo file"), 0, row);
     grid.add(logoPathField, 1, row);
     grid.add(browseLogo, 2, row++);
@@ -278,6 +357,8 @@ public class MainView {
     grid.add(offsetXField, 1, row++, 2, 1);
     grid.add(new Label("Y offset"), 0, row);
     grid.add(offsetYField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("Bottom text bar"), 0, row++, 3, 1);
     grid.add(textBarEnabledField, 1, row++, 2, 1);
     grid.add(new Label("Text template"), 0, row);
     grid.add(textTemplateField, 1, row++, 2, 1);
@@ -291,6 +372,23 @@ public class MainView {
     grid.add(fontNameField, 1, row++, 2, 1);
     grid.add(new Label("Font size"), 0, row);
     grid.add(fontSizeField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("Results table"), 0, row++, 3, 1);
+    grid.add(resultsEnabledField, 1, row++, 2, 1);
+    grid.add(new Label("Results height (%)"), 0, row);
+    grid.add(resultsHeightField, 1, row++, 2, 1);
+    grid.add(new Label("Results title"), 0, row);
+    grid.add(resultsTitleField, 1, row++, 2, 1);
+    grid.add(new Label("Rows"), 0, row);
+    grid.add(resultsRowsField, 1, row++, 2, 1);
+    grid.add(new Label("Results background"), 0, row);
+    grid.add(resultsBackgroundColorField, 1, row++, 2, 1);
+    grid.add(new Label("Results header"), 0, row);
+    grid.add(resultsHeaderColorField, 1, row++, 2, 1);
+    grid.add(new Label("Result accent"), 0, row);
+    grid.add(resultsAccentColorField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("Export"), 0, row++, 3, 1);
     grid.add(new Label("Output format"), 0, row);
     grid.add(outputFormatField, 1, row++, 2, 1);
     grid.add(save, 1, row);
@@ -334,9 +432,9 @@ public class MainView {
     historyTable.getColumns().add(processedColumn);
     historyTable.getColumns().add(messageColumn);
 
-    Button refresh = new Button("Refresh");
+    Button refresh = new Button("⟳ Refresh");
     refresh.setOnAction(event -> refreshHistory());
-    Button retryExport = new Button("Retry export");
+    Button retryExport = new Button("↻ Retry export");
     retryExport.setOnAction(event -> {
       ProcessedFile selected = historyTable.getSelectionModel().getSelectedItem();
       if (selected != null && selected.status() == ProcessingStatus.PENDING_EXPORT) {
@@ -358,9 +456,9 @@ public class MainView {
     updateNotesArea.setWrapText(true);
     updateNotesArea.setPrefRowCount(8);
 
-    Button checkUpdate = new Button("Check for updates");
+    Button checkUpdate = new Button("⟳ Check for updates");
     checkUpdate.setOnAction(event -> checkForUpdates());
-    downloadUpdateButton = new Button("Download and install");
+    downloadUpdateButton = new Button("⬇ Download and install");
     downloadUpdateButton.setDisable(true);
     downloadUpdateButton.setOnAction(event -> downloadUpdate());
 
@@ -509,6 +607,26 @@ public class MainView {
     String fontName = fontNameField.getText().trim();
     int fontSize = fontSizeField.getValue();
     OutputFormat outputFormat = outputFormatField.getValue();
+    boolean canvasEnabled = canvasEnabledField.isSelected();
+    int canvasWidth = canvasWidthField.getValue();
+    int canvasHeight = canvasHeightField.getValue();
+    ImageFitMode imageFitMode = imageFitModeField.getValue();
+    String canvasBackgroundColor = canvasBackgroundColorField.getText().trim();
+    boolean headerEnabled = headerEnabledField.isSelected();
+    double headerHeight = headerHeightField.getValue();
+    String headerBackgroundColor = headerBackgroundColorField.getText().trim();
+    String headerTextColor = headerTextColorField.getText().trim();
+    String headerTitle = headerTitleField.getText();
+    String headerSubtitle = headerSubtitleField.getText();
+    String headerLeftLogoPath = headerLeftLogoPathField.getText().trim();
+    String headerRightLogoPath = headerRightLogoPathField.getText().trim();
+    boolean resultsEnabled = resultsEnabledField.isSelected();
+    double resultsHeight = resultsHeightField.getValue();
+    String resultsTitle = resultsTitleField.getText();
+    String resultsRows = resultsRowsField.getText();
+    String resultsBackgroundColor = resultsBackgroundColorField.getText().trim();
+    String resultsHeaderColor = resultsHeaderColorField.getText().trim();
+    String resultsAccentColor = resultsAccentColorField.getText().trim();
 
     CompletableFuture
         .supplyAsync(() -> {
@@ -531,6 +649,26 @@ public class MainView {
             template.setFontName(fontName);
             template.setFontSize(fontSize);
             template.setOutputFormat(outputFormat);
+            template.setCanvasEnabled(canvasEnabled);
+            template.setCanvasWidth(canvasWidth);
+            template.setCanvasHeight(canvasHeight);
+            template.setImageFitMode(valueOrDefault(imageFitMode, ImageFitMode.COVER));
+            template.setCanvasBackgroundColor(canvasBackgroundColor);
+            template.setHeaderEnabled(headerEnabled);
+            template.setHeaderHeightPercent(headerHeight);
+            template.setHeaderBackgroundColor(headerBackgroundColor);
+            template.setHeaderTextColor(headerTextColor);
+            template.setHeaderTitle(headerTitle);
+            template.setHeaderSubtitle(headerSubtitle);
+            template.setHeaderLeftLogoPath(headerLeftLogoPath);
+            template.setHeaderRightLogoPath(headerRightLogoPath);
+            template.setResultsEnabled(resultsEnabled);
+            template.setResultsHeightPercent(resultsHeight);
+            template.setResultsTitle(resultsTitle);
+            template.setResultsRowsText(resultsRows);
+            template.setResultsBackgroundColor(resultsBackgroundColor);
+            template.setResultsHeaderColor(resultsHeaderColor);
+            template.setResultsAccentColor(resultsAccentColor);
             BrandingTemplate saved = context.templateRepository().save(template);
             if (settings.getActiveTemplateId() == 0L) {
               settings.setActiveTemplateId(saved.getId());
@@ -634,6 +772,26 @@ public class MainView {
     fontNameField.setText(template.getFontName());
     fontSizeField.getValueFactory().setValue(template.getFontSize());
     outputFormatField.setValue(template.getOutputFormat());
+    canvasEnabledField.setSelected(template.isCanvasEnabled());
+    canvasWidthField.getValueFactory().setValue(template.getCanvasWidth());
+    canvasHeightField.getValueFactory().setValue(template.getCanvasHeight());
+    imageFitModeField.setValue(valueOrDefault(template.getImageFitMode(), ImageFitMode.COVER));
+    canvasBackgroundColorField.setText(template.getCanvasBackgroundColor());
+    headerEnabledField.setSelected(template.isHeaderEnabled());
+    headerHeightField.setValue(template.getHeaderHeightPercent());
+    headerBackgroundColorField.setText(template.getHeaderBackgroundColor());
+    headerTextColorField.setText(template.getHeaderTextColor());
+    headerTitleField.setText(template.getHeaderTitle());
+    headerSubtitleField.setText(template.getHeaderSubtitle());
+    headerLeftLogoPathField.setText(nullToEmpty(template.getHeaderLeftLogoPath()));
+    headerRightLogoPathField.setText(nullToEmpty(template.getHeaderRightLogoPath()));
+    resultsEnabledField.setSelected(template.isResultsEnabled());
+    resultsHeightField.setValue(template.getResultsHeightPercent());
+    resultsTitleField.setText(template.getResultsTitle());
+    resultsRowsField.setText(template.getResultsRowsText());
+    resultsBackgroundColorField.setText(template.getResultsBackgroundColor());
+    resultsHeaderColorField.setText(template.getResultsHeaderColor());
+    resultsAccentColorField.setText(template.getResultsAccentColor());
     if (templatePreviewImage != null) {
       refreshTemplatePreview();
     }
@@ -652,11 +810,15 @@ public class MainView {
   }
 
   private void chooseLogo() {
+    chooseImageInto(logoPathField);
+  }
+
+  private void chooseImageInto(TextField field) {
     FileChooser chooser = new FileChooser();
     chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg"));
     File selected = chooser.showOpenDialog(root.getScene().getWindow());
     if (selected != null) {
-      logoPathField.setText(selected.toPath().toString());
+      field.setText(selected.toPath().toString());
     }
   }
 
@@ -724,6 +886,26 @@ public class MainView {
     template.setFontName(fontNameField.getText().trim());
     template.setFontSize(fontSizeField.getValue());
     template.setOutputFormat(valueOrDefault(outputFormatField.getValue(), OutputFormat.JPG));
+    template.setCanvasEnabled(canvasEnabledField.isSelected());
+    template.setCanvasWidth(canvasWidthField.getValue());
+    template.setCanvasHeight(canvasHeightField.getValue());
+    template.setImageFitMode(valueOrDefault(imageFitModeField.getValue(), ImageFitMode.COVER));
+    template.setCanvasBackgroundColor(canvasBackgroundColorField.getText().trim());
+    template.setHeaderEnabled(headerEnabledField.isSelected());
+    template.setHeaderHeightPercent(headerHeightField.getValue());
+    template.setHeaderBackgroundColor(headerBackgroundColorField.getText().trim());
+    template.setHeaderTextColor(headerTextColorField.getText().trim());
+    template.setHeaderTitle(headerTitleField.getText());
+    template.setHeaderSubtitle(headerSubtitleField.getText());
+    template.setHeaderLeftLogoPath(headerLeftLogoPathField.getText().trim());
+    template.setHeaderRightLogoPath(headerRightLogoPathField.getText().trim());
+    template.setResultsEnabled(resultsEnabledField.isSelected());
+    template.setResultsHeightPercent(resultsHeightField.getValue());
+    template.setResultsTitle(resultsTitleField.getText());
+    template.setResultsRowsText(resultsRowsField.getText());
+    template.setResultsBackgroundColor(resultsBackgroundColorField.getText().trim());
+    template.setResultsHeaderColor(resultsHeaderColorField.getText().trim());
+    template.setResultsAccentColor(resultsAccentColorField.getText().trim());
     return template;
   }
 
@@ -756,7 +938,7 @@ public class MainView {
 
   private static Parent labelBlock(String title, Label value) {
     Label titleLabel = sectionTitle(title);
-    value.setStyle("-fx-font-size: 15px;");
+    value.getStyleClass().add("metric-value");
     return new VBox(4, titleLabel, value);
   }
 
@@ -764,14 +946,14 @@ public class MainView {
     BorderPane frame = new BorderPane(imageView);
     frame.setMinHeight(360);
     frame.setPrefHeight(380);
-    frame.setStyle("-fx-background-color: #202327; -fx-border-color: #d9dee5; -fx-border-radius: 4px;");
+    frame.getStyleClass().add("preview-frame");
     BorderPane.setAlignment(imageView, Pos.CENTER);
     return frame;
   }
 
   private static Label sectionTitle(String text) {
     Label label = new Label(text);
-    label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+    label.getStyleClass().add("section-title");
     return label;
   }
 

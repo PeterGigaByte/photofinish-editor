@@ -6,7 +6,7 @@
 
   <groupId>sk.rigo</groupId>
   <artifactId>photofinish-app</artifactId>
-  <version>0.1.3</version>
+  <version>0.1.4</version>
   <name>PhotoFinish Branding Studio</name>
 
   <properties>

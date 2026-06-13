@@ -16,6 +16,7 @@ import sk.rigo.photofinish.repository.ProcessingErrorRepository;
 import sk.rigo.photofinish.repository.SettingsRepository;
 import sk.rigo.photofinish.service.AppContext;
 import sk.rigo.photofinish.service.FileProcessingService;
+import sk.rigo.photofinish.ui.AppIcons;
 import sk.rigo.photofinish.ui.MainView;
 import sk.rigo.photofinish.update.UpdateService;
 import sk.rigo.photofinish.watcher.FolderWatcherService;
@@ -82,7 +83,12 @@ public class MainApp extends Application {
   public void start(Stage stage) {
     MainView mainView = new MainView(context);
     Scene scene = new Scene(mainView.root(), 1120, 740);
+    var stylesheet = MainApp.class.getResource("/styles/app.css");
+    if (stylesheet != null) {
+      scene.getStylesheets().add(stylesheet.toExternalForm());
+    }
     stage.setTitle(context.metadata().name());
+    stage.getIcons().add(AppIcons.windowIcon());
     stage.setMinWidth(980);
     stage.setMinHeight(640);
     stage.setScene(scene);

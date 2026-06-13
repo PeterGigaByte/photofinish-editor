@@ -71,6 +71,8 @@ Tables:
 
 Repository classes own SQL access. Keep SQL out of UI classes.
 
+`Database.initialize()` also migrates older `branding_templates` rows by adding poster canvas, header, and results-table columns when missing. Do not require users to delete their local database for template feature updates.
+
 ## Folder Watching
 
 `FolderWatcherService` watches the configured input folder for JPG/PNG files.
@@ -102,6 +104,10 @@ Flow:
 `BrandingRenderer` is independent of JavaFX.
 
 Supported features:
+- optional fixed-size poster canvas for portrait/social output
+- image fit mode: cover, contain, or stretch
+- canvas background color
+- top header with title, subtitle, colors, and left/right logo images
 - logo overlay
 - logo position
 - logo size as percent of image width
@@ -109,6 +115,7 @@ Supported features:
 - x/y offsets
 - optional bottom text bar
 - text template placeholders
+- optional bottom results table with editable rows and colors
 
 Preview rendering uses the same renderer, but it does not write output files or create history rows.
 
@@ -126,6 +133,8 @@ Rules:
 - keep controls responsive
 - use `Platform.runLater` only for UI updates
 - keep image processing logic outside `ui`
+- keep template preview controls wired to the same `BrandingTemplate` fields used by folder processing
+- keep the dark UI stylesheet in `src/main/resources/styles/app.css`
 
 ## Updates
 
@@ -137,4 +146,3 @@ Rules:
 - launches installer after app exit for versions `0.1.2+`
 
 The app does not overwrite its own installation files.
-

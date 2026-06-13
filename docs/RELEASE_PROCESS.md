@@ -11,7 +11,7 @@ For every release, update:
 - README examples
 - `updates/latest.json`
 
-Use semantic versions such as `0.1.3`.
+Use semantic versions such as `0.1.4`.
 
 ## Build
 
@@ -34,6 +34,7 @@ The helper:
 - reads the project version from `pom.xml`
 - builds the Maven package
 - stages `target\jpackage-input`
+- generates `target\app-icon.ico`
 - downloads portable WiX 3.11.2 when needed
 - runs `jpackage`
 - falls back to a validation-suppressed WiX link step when local Windows Installer ICE validation is unavailable
@@ -64,9 +65,9 @@ The helper:
 
 ```json
 {
-  "version": "0.1.3",
-  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.3/PhotoFinishBrandingStudio-0.1.3.msi",
-  "sha256": "1CED729A52B521CED46376896E80DA85301226D1EE5752418EB2D13A2A8C219E",
+  "version": "0.1.4",
+  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.4/PhotoFinishBrandingStudio-0.1.4.msi",
+  "sha256": "installer-sha256",
   "notes": "Release notes shown in the Updates tab."
 }
 ```
@@ -97,4 +98,3 @@ git add README.md pom.xml src/main/resources/application.properties updates/late
 git commit -m "Release <version>"
 git push
 ```
-

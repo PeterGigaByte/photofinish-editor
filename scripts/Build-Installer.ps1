@@ -55,6 +55,9 @@ if (-not (Test-Path -LiteralPath $Candle) -or -not (Test-Path -LiteralPath $Ligh
 
 $InstallerDir = Join-Path "target" "installer"
 New-Item -ItemType Directory -Force $InstallerDir | Out-Null
+$IconPath = Join-Path "target" "app-icon.ico"
+& (Join-Path $PSScriptRoot "Generate-AppIcon.ps1") -OutputPath $IconPath
+$ResolvedIconPath = (Resolve-Path $IconPath).Path
 
 $TempDir = Join-Path "target" ("jpackage-temp-msi-" + (Get-Date -Format "yyyyMMddHHmmss"))
 New-Item -ItemType Directory -Force $TempDir | Out-Null
@@ -72,6 +75,7 @@ $InstallerPath = Join-Path $InstallerDir "PhotoFinish Branding Studio-$Version.m
   --main-jar $JarName `
   --main-class sk.rigo.photofinish.Launcher `
   --dest $InstallerDir `
+  --icon $ResolvedIconPath `
   --win-dir-chooser `
   --win-menu `
   --win-shortcut

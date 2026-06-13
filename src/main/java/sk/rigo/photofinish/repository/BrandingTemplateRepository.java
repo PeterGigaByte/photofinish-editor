@@ -2,6 +2,7 @@ package sk.rigo.photofinish.repository;
 
 import sk.rigo.photofinish.db.Database;
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
 import sk.rigo.photofinish.model.OutputFormat;
 
@@ -71,9 +72,15 @@ public class BrandingTemplateRepository {
              INSERT INTO branding_templates (
                name, logo_path, logo_position, logo_scale_percent, logo_opacity, offset_x, offset_y,
                text_bar_enabled, text_template, text_bar_height_percent, text_bar_color, text_color,
-               font_name, font_size, output_format, updated_at
+               font_name, font_size, output_format,
+               canvas_enabled, canvas_width, canvas_height, image_fit_mode, canvas_background_color,
+               header_enabled, header_height_percent, header_background_color, header_text_color,
+               header_title, header_subtitle, header_left_logo_path, header_right_logo_path,
+               results_enabled, results_height_percent, results_title, results_rows_text,
+               results_background_color, results_header_color, results_accent_color,
+               updated_at
              )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              """, Statement.RETURN_GENERATED_KEYS)) {
       bindTemplate(statement, template);
       statement.executeUpdate();
@@ -93,11 +100,18 @@ public class BrandingTemplateRepository {
              SET name = ?, logo_path = ?, logo_position = ?, logo_scale_percent = ?, logo_opacity = ?,
                  offset_x = ?, offset_y = ?, text_bar_enabled = ?, text_template = ?,
                  text_bar_height_percent = ?, text_bar_color = ?, text_color = ?,
-                 font_name = ?, font_size = ?, output_format = ?, updated_at = ?
+                 font_name = ?, font_size = ?, output_format = ?,
+                 canvas_enabled = ?, canvas_width = ?, canvas_height = ?, image_fit_mode = ?,
+                 canvas_background_color = ?, header_enabled = ?, header_height_percent = ?,
+                 header_background_color = ?, header_text_color = ?, header_title = ?, header_subtitle = ?,
+                 header_left_logo_path = ?, header_right_logo_path = ?, results_enabled = ?,
+                 results_height_percent = ?, results_title = ?, results_rows_text = ?,
+                 results_background_color = ?, results_header_color = ?, results_accent_color = ?,
+                 updated_at = ?
              WHERE id = ?
              """)) {
       bindTemplate(statement, template);
-      statement.setLong(17, template.getId());
+      statement.setLong(37, template.getId());
       statement.executeUpdate();
     }
   }
@@ -118,7 +132,27 @@ public class BrandingTemplateRepository {
     statement.setString(13, template.getFontName());
     statement.setInt(14, template.getFontSize());
     statement.setString(15, template.getOutputFormat().name());
-    statement.setString(16, Instant.now().toString());
+    statement.setInt(16, template.isCanvasEnabled() ? 1 : 0);
+    statement.setInt(17, template.getCanvasWidth());
+    statement.setInt(18, template.getCanvasHeight());
+    statement.setString(19, template.getImageFitMode().name());
+    statement.setString(20, template.getCanvasBackgroundColor());
+    statement.setInt(21, template.isHeaderEnabled() ? 1 : 0);
+    statement.setDouble(22, template.getHeaderHeightPercent());
+    statement.setString(23, template.getHeaderBackgroundColor());
+    statement.setString(24, template.getHeaderTextColor());
+    statement.setString(25, template.getHeaderTitle());
+    statement.setString(26, template.getHeaderSubtitle());
+    statement.setString(27, template.getHeaderLeftLogoPath());
+    statement.setString(28, template.getHeaderRightLogoPath());
+    statement.setInt(29, template.isResultsEnabled() ? 1 : 0);
+    statement.setDouble(30, template.getResultsHeightPercent());
+    statement.setString(31, template.getResultsTitle());
+    statement.setString(32, template.getResultsRowsText());
+    statement.setString(33, template.getResultsBackgroundColor());
+    statement.setString(34, template.getResultsHeaderColor());
+    statement.setString(35, template.getResultsAccentColor());
+    statement.setString(36, Instant.now().toString());
   }
 
   private static BrandingTemplate map(ResultSet resultSet) throws SQLException {
@@ -139,6 +173,26 @@ public class BrandingTemplateRepository {
     template.setFontName(resultSet.getString("font_name"));
     template.setFontSize(resultSet.getInt("font_size"));
     template.setOutputFormat(OutputFormat.valueOf(resultSet.getString("output_format")));
+    template.setCanvasEnabled(resultSet.getInt("canvas_enabled") == 1);
+    template.setCanvasWidth(resultSet.getInt("canvas_width"));
+    template.setCanvasHeight(resultSet.getInt("canvas_height"));
+    template.setImageFitMode(ImageFitMode.valueOf(resultSet.getString("image_fit_mode")));
+    template.setCanvasBackgroundColor(resultSet.getString("canvas_background_color"));
+    template.setHeaderEnabled(resultSet.getInt("header_enabled") == 1);
+    template.setHeaderHeightPercent(resultSet.getDouble("header_height_percent"));
+    template.setHeaderBackgroundColor(resultSet.getString("header_background_color"));
+    template.setHeaderTextColor(resultSet.getString("header_text_color"));
+    template.setHeaderTitle(resultSet.getString("header_title"));
+    template.setHeaderSubtitle(resultSet.getString("header_subtitle"));
+    template.setHeaderLeftLogoPath(resultSet.getString("header_left_logo_path"));
+    template.setHeaderRightLogoPath(resultSet.getString("header_right_logo_path"));
+    template.setResultsEnabled(resultSet.getInt("results_enabled") == 1);
+    template.setResultsHeightPercent(resultSet.getDouble("results_height_percent"));
+    template.setResultsTitle(resultSet.getString("results_title"));
+    template.setResultsRowsText(resultSet.getString("results_rows_text"));
+    template.setResultsBackgroundColor(resultSet.getString("results_background_color"));
+    template.setResultsHeaderColor(resultSet.getString("results_header_color"));
+    template.setResultsAccentColor(resultSet.getString("results_accent_color"));
     return template;
   }
 }

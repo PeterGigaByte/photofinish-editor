@@ -1,0 +1,228 @@
+.root {
+  -fx-font-family: "Segoe UI", "Arial", sans-serif;
+  -fx-font-size: 13px;
+  -fx-base: #151922;
+  -fx-background: #11151d;
+  -fx-control-inner-background: #1b2130;
+  -fx-accent: #3fb6ff;
+  -fx-focus-color: #3fb6ff;
+  -fx-faint-focus-color: rgba(63, 182, 255, 0.18);
+}
+
+.app-root {
+  -fx-background-color: #11151d;
+}
+
+.app-header {
+  -fx-background-color: #171d28;
+  -fx-border-color: transparent transparent #2a3343 transparent;
+}
+
+.app-title {
+  -fx-font-size: 20px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #f4f7fb;
+}
+
+.app-version {
+  -fx-text-fill: #8ea0b8;
+}
+
+.label {
+  -fx-text-fill: #dce6f2;
+}
+
+.section-title {
+  -fx-font-size: 16px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #ffffff;
+  -fx-padding: 12px 0 2px 0;
+}
+
+.metric-value {
+  -fx-font-size: 15px;
+  -fx-text-fill: #a8f07a;
+}
+
+.button {
+  -fx-background-color: #263247;
+  -fx-text-fill: #f4f7fb;
+  -fx-background-radius: 6px;
+  -fx-border-radius: 6px;
+  -fx-border-color: #3b4860;
+  -fx-padding: 7px 12px;
+  -fx-cursor: hand;
+}
+
+.button:hover {
+  -fx-background-color: #314059;
+  -fx-border-color: #4ebdff;
+}
+
+.button:pressed {
+  -fx-background-color: #203046;
+}
+
+.button:disabled {
+  -fx-opacity: 0.45;
+  -fx-cursor: default;
+}
+
+.text-field,
+.text-area,
+.combo-box-base,
+.spinner {
+  -fx-background-color: #1b2130;
+  -fx-text-fill: #eef4fb;
+  -fx-background-radius: 6px;
+  -fx-border-radius: 6px;
+  -fx-border-color: #344156;
+}
+
+.text-field:focused,
+.text-area:focused,
+.combo-box-base:focused,
+.spinner:focused {
+  -fx-border-color: #3fb6ff;
+}
+
+.text-area .content {
+  -fx-background-color: #1b2130;
+}
+
+.text-area {
+  -fx-highlight-fill: #2e6d9a;
+  -fx-highlight-text-fill: #ffffff;
+}
+
+.combo-box .list-cell {
+  -fx-text-fill: #eef4fb;
+}
+
+.combo-box-popup .list-view {
+  -fx-background-color: #1b2130;
+  -fx-border-color: #344156;
+}
+
+.combo-box-popup .list-cell {
+  -fx-background-color: #1b2130;
+  -fx-text-fill: #eef4fb;
+}
+
+.combo-box-popup .list-cell:hover {
+  -fx-background-color: #314059;
+}
+
+.spinner .text-field {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+}
+
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+  -fx-background-color: #263247;
+}
+
+.check-box {
+  -fx-text-fill: #dce6f2;
+}
+
+.check-box .box {
+  -fx-background-color: #1b2130;
+  -fx-border-color: #44536a;
+  -fx-border-radius: 4px;
+  -fx-background-radius: 4px;
+}
+
+.check-box:selected .mark {
+  -fx-background-color: #10141b;
+}
+
+.check-box:selected .box {
+  -fx-background-color: #a8f07a;
+  -fx-border-color: #a8f07a;
+}
+
+.tab-pane {
+  -fx-background-color: #11151d;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+  -fx-background-color: #11151d;
+  -fx-border-color: transparent transparent #2a3343 transparent;
+}
+
+.tab {
+  -fx-background-color: #171d28;
+  -fx-background-radius: 6px 6px 0 0;
+  -fx-border-color: #2a3343;
+  -fx-border-radius: 6px 6px 0 0;
+}
+
+.tab:selected {
+  -fx-background-color: #243149;
+  -fx-border-color: #3fb6ff #3fb6ff #243149 #3fb6ff;
+}
+
+.tab .tab-label {
+  -fx-text-fill: #b9c6d8;
+  -fx-font-weight: 600;
+}
+
+.tab:selected .tab-label {
+  -fx-text-fill: #ffffff;
+}
+
+.scroll-pane,
+.scroll-pane > .viewport,
+.table-view {
+  -fx-background-color: #11151d;
+}
+
+.preview-frame {
+  -fx-background-color: #0b0f16;
+  -fx-border-color: #344156;
+  -fx-border-radius: 6px;
+  -fx-background-radius: 6px;
+  -fx-padding: 10px;
+}
+
+.table-view {
+  -fx-border-color: #344156;
+  -fx-border-radius: 6px;
+}
+
+.table-view .column-header-background,
+.table-view .column-header {
+  -fx-background-color: #20293a;
+}
+
+.table-view .column-header .label {
+  -fx-text-fill: #ffffff;
+  -fx-font-weight: 700;
+}
+
+.table-row-cell {
+  -fx-background-color: #151b26;
+  -fx-text-background-color: #eef4fb;
+}
+
+.table-row-cell:odd {
+  -fx-background-color: #1a2230;
+}
+
+.table-row-cell:selected {
+  -fx-background-color: #2e6d9a;
+}
+
+.slider .track {
+  -fx-background-color: #303b50;
+}
+
+.slider .thumb {
+  -fx-background-color: #3fb6ff;
+}
+
+.slider .axis {
+  -fx-tick-label-fill: #8ea0b8;
+}
