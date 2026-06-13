@@ -65,8 +65,8 @@ The helper:
 
 ```json
 {
-  "version": "0.1.5",
-  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.5/PhotoFinishBrandingStudio-0.1.5.msi",
+  "version": "0.1.6",
+  "installerUrl": "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.6/PhotoFinishBrandingStudio-0.1.6.msi",
   "sha256": "installer-sha256",
   "notes": "Release notes shown in the Updates tab."
 }

@@ -54,6 +54,41 @@ class BrandingRendererTest {
     assertTrue(rendered.getHeight() > 120, "header and results bands should add height");
   }
 
+  @Test
+  void headerBackgroundFadesRightToLeft() throws Exception {
+    BrandingTemplate template = BrandingTemplate.defaults();
+    template.setImageFitMode(ImageFitMode.ORIGINAL);
+    template.setAutoCropEnabled(false);
+    template.setHeaderEnabled(true);
+    template.setHeaderHeightPercent(30.0);
+    template.setHeaderBackgroundColor("#0D5B91");
+    template.setHeaderTitle(""); // keep the sampled band free of text
+    template.setHeaderSubtitle("");
+    template.setHeaderLeftLogoPath("");
+    template.setHeaderRightLogoPath("");
+    template.setResultsEnabled(false);
+    template.setTextBarEnabled(false);
+    template.setLogoPath("");
+
+    BufferedImage rendered = renderer.render(solid(1200, 200), Path.of("race.jpg"), template);
+
+    Color headerColor = new Color(0x0D, 0x5B, 0x91);
+    int y = 4;
+    Color left = new Color(rendered.getRGB(4, y));
+    Color right = new Color(rendered.getRGB(rendered.getWidth() - 4, y));
+
+    // Right edge is essentially the full header colour; left edge has faded away from it.
+    assertTrue(distance(right, headerColor) < 30, "right edge should be the header colour");
+    assertTrue(distance(left, headerColor) > 100, "left edge should have faded away from the header colour");
+  }
+
+  private static double distance(Color a, Color b) {
+    int dr = a.getRed() - b.getRed();
+    int dg = a.getGreen() - b.getGreen();
+    int db = a.getBlue() - b.getBlue();
+    return Math.sqrt((double) dr * dr + dg * dg + db * db);
+  }
+
   private static BufferedImage solid(int width, int height) {
     BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
     Graphics2D graphics = image.createGraphics();

@@ -9,6 +9,7 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Font;
+import java.awt.GradientPaint;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -198,7 +199,11 @@ public class BrandingRenderer {
       return;
     }
 
-    graphics.setColor(ColorParser.parse(template.getHeaderBackgroundColor(), new Color(13, 91, 145)));
+    // Fade the header background horizontally from the full colour on the right to transparent on the
+    // left, so the band is not a flat block and blends into the canvas towards the left.
+    Color headerColor = ColorParser.parse(template.getHeaderBackgroundColor(), new Color(13, 91, 145));
+    Color fadedLeft = new Color(headerColor.getRed(), headerColor.getGreen(), headerColor.getBlue(), 0);
+    graphics.setPaint(new GradientPaint(0, 0, fadedLeft, output.getWidth(), 0, headerColor));
     graphics.fillRect(0, 0, output.getWidth(), height);
 
     // Horizontal padding follows the poster width; the vertical inset is bounded by the band height so

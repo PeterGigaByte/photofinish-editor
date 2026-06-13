@@ -110,9 +110,9 @@ Supported features:
 - image fit mode: keep original size, cover, contain, or stretch
   - `Keep original size` (`ImageFitMode.ORIGINAL`) draws the photo at native 1:1 pixels and builds the poster around it; the output width follows the (cropped) photo width and the header/results bands are sized relative to the photo height
   - `cover` / `contain` / `stretch` fit the photo into the fixed canvas as before
-- auto-crop of empty (no-participant) areas via `PhotofinishAutoCropper`, applied before layout when enabled; only engages for long strips (width ≥ 2.5× height) and never scales pixels
+- auto-crop of empty (no-participant) areas via `PhotofinishAutoCropper`, applied before layout when enabled; only engages for long strips (width ≥ 2.5× height) and never scales pixels. It groups active columns into participant clusters and removes the empty runs at the front, the back and between participants, keeping a safety margin of background around each cluster so no athlete is clipped
 - canvas background color
-- top header with title, subtitle, colors, and left/right logo images
+- top header with title, subtitle, colors, and left/right logo images; the header background fades horizontally from the full colour on the right to transparent on the left
 - logo overlay
 - logo position
 - logo size as percent of image width

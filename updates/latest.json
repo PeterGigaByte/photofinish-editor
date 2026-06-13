@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "0.1.5",
-    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.5/PhotoFinishBrandingStudio-0.1.5.msi",
-    "sha256":  "6E29559BBE79BA2310A9FC72350B73AAF7A24A2ED6BE4FA39221B51D9F6F997E",
-    "notes":  "Keep original photo size with auto-crop of empty (no-athlete) areas on long strips; new \u0027Keep original size\u0027 poster mode builds header/results/logos around the native-size photo. Exports keep the input\u0027s base name and re-export when the same-named file has new content."
+    "version":  "0.1.6",
+    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.6/PhotoFinishBrandingStudio-0.1.6.msi",
+    "sha256":  "9100FA1ADF9628971F6BA8E254548239389B45EEA1F28A9D0D1AC7E7766F8EC6",
+    "notes":  "Auto-crop now also removes the empty space between participants (front, back and gaps), keeping a safety margin so no athlete is clipped. Header background fades from full colour on the right to transparent on the left."
 }

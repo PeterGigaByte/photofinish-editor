@@ -12,7 +12,7 @@ Java 21 desktop application for automated branding of photofinish images.
 - Content-aware re-export: an unchanged file that was already exported is skipped, but new content arriving under the same name is re-exported (de-duplication uses the source size + last-modified fingerprint, not just the path).
 - Exported images keep the same base name as the input (only the extension follows the chosen output format).
 - Pure Java image processing with `BufferedImage`, `Graphics2D`, and `ImageIO`.
-- Auto-crop of the empty (no-participant) stretches from long photofinish strips, keeping the original pixels (only the width changes).
+- Auto-crop of the empty (no-participant) stretches from long photofinish strips — front, back, and the gaps between participants — keeping the original pixels (only the width changes) and a safety margin around each athlete.
 - Poster-style canvas controls for portrait/social output, including canvas size, background color, and image fit mode. The `Keep original size` fit mode builds the poster (header, results, logos, text bar) around the native-size photo so the photo is never scaled — the poster width follows the (cropped) photo width.
 - Top header controls with event title, subtitle, header colors, and left/right logo images.
 - Logo overlay controls: file, position, size, opacity, and x/y offset.
@@ -49,7 +49,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.5.jar
+java -jar target\photofinish-app-0.1.6.jar
 ```
 
 ## Build a Windows installer
@@ -62,10 +62,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.5 `
+  --app-version 0.1.6 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.5.jar `
+  --main-jar photofinish-app-0.1.6.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --icon target\app-icon.ico `

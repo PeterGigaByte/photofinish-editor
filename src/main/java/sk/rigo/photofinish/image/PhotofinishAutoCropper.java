@@ -1,7 +1,11 @@
 package sk.rigo.photofinish.image;
 
+import java.awt.Graphics2D;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Trims the empty (no-participant) stretches from long photofinish strips while keeping the
@@ -11,8 +15,10 @@ import java.util.Arrays;
  * the finish line. Columns where no athlete is present look almost identical to the static
  * background (empty track / lane lines). When an athlete crosses, the affected columns differ
  * noticeably from that background. This class measures, per column, how far it deviates from the
- * background, keeps the span of "active" columns (plus a small margin) and removes the flat
- * leading and trailing runs.
+ * background, groups the "active" columns into participant clusters and removes the flat runs at
+ * the front, at the back and between participants. Each kept cluster retains a safety margin of
+ * real background on both sides, so no athlete is ever clipped and neighbouring participants stay
+ * visually separated.
  *
  * <p>The detector is intentionally conservative: it only engages for genuinely long strips, it
  * never upscales or distorts, and it returns the source unchanged whenever it cannot confidently
@@ -65,30 +71,74 @@ public class PhotofinishAutoCropper {
     }
 
     double threshold = min + (max - min) * ACTIVITY_THRESHOLD_FRACTION;
-    int firstActive = -1;
-    int lastActive = -1;
+
+    // Group active columns into participant clusters, ignoring 1-2px noise so a stray pixel does
+    // not pin an otherwise empty region as "kept".
+    int minClusterWidth = Math.max(2, width / 400);
+    List<int[]> clusters = new ArrayList<>();
+    int runStart = -1;
     for (int x = 0; x < width; x++) {
       if (activity[x] >= threshold) {
-        if (firstActive < 0) {
-          firstActive = x;
+        if (runStart < 0) {
+          runStart = x;
         }
-        lastActive = x;
+      } else if (runStart >= 0) {
+        if (x - runStart >= minClusterWidth) {
+          clusters.add(new int[]{runStart, x - 1});
+        }
+        runStart = -1;
       }
     }
+    if (runStart >= 0 && width - runStart >= minClusterWidth) {
+      clusters.add(new int[]{runStart, width - 1});
+    }
 
-    if (firstActive < 0) {
+    if (clusters.isEmpty()) {
       // No participant detected anywhere (e.g. a blank strip) - leave the image untouched.
       return source;
     }
 
+    // Expand every cluster by a safety margin of real background on both sides, then merge ranges
+    // that touch or overlap. Concatenating the kept ranges removes the empty space at the front, the
+    // back and between participants, while the margin guarantees no athlete is clipped and adjacent
+    // participants keep a visible buffer between them.
     int margin = (int) Math.round(width * MARGIN_FRACTION);
-    int x0 = Math.max(0, firstActive - margin);
-    int x1 = Math.min(width - 1, lastActive + margin);
-    int croppedWidth = x1 - x0 + 1;
-    if (croppedWidth >= width) {
+    List<int[]> keep = new ArrayList<>();
+    for (int[] cluster : clusters) {
+      int start = Math.max(0, cluster[0] - margin);
+      int end = Math.min(width - 1, cluster[1] + margin);
+      if (!keep.isEmpty() && start <= keep.get(keep.size() - 1)[1] + 1) {
+        keep.get(keep.size() - 1)[1] = Math.max(keep.get(keep.size() - 1)[1], end);
+      } else {
+        keep.add(new int[]{start, end});
+      }
+    }
+
+    int keptWidth = 0;
+    for (int[] range : keep) {
+      keptWidth += range[1] - range[0] + 1;
+    }
+    if (keptWidth >= width) {
+      // Participants span the whole strip - nothing meaningful to remove.
       return source;
     }
-    return source.getSubimage(x0, 0, croppedWidth, height);
+
+    int type = source.getTransparency() == Transparency.OPAQUE
+        ? BufferedImage.TYPE_INT_RGB
+        : BufferedImage.TYPE_INT_ARGB;
+    BufferedImage cropped = new BufferedImage(keptWidth, height, type);
+    Graphics2D graphics = cropped.createGraphics();
+    try {
+      int destX = 0;
+      for (int[] range : keep) {
+        int rangeWidth = range[1] - range[0] + 1;
+        graphics.drawImage(source.getSubimage(range[0], 0, rangeWidth, height), destX, 0, null);
+        destX += rangeWidth;
+      }
+    } finally {
+      graphics.dispose();
+    }
+    return cropped;
   }
 
   private static int[] backgroundLumaPerRow(BufferedImage source, int[] sampledRows, int width) {
