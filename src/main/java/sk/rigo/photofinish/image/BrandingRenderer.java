@@ -25,6 +25,7 @@ public class BrandingRenderer {
 
   private final TextTemplateEngine textTemplateEngine = new TextTemplateEngine();
   private final PhotofinishAutoCropper autoCropper = new PhotofinishAutoCropper();
+  private final ImageEnhancer imageEnhancer = new ImageEnhancer();
 
   /** Resolved geometry of the poster: output dimensions, header/results band heights and the photo rectangle. */
   private record PosterLayout(int width, int height, int headerHeight, int resultsHeight, Rectangle imageArea) {
@@ -42,7 +43,9 @@ public class BrandingRenderer {
   public BufferedImage render(BufferedImage source, Path sourcePath, BrandingTemplate template) throws IOException {
     // Step 1: trim the empty (no-participant) stretches from long strips, keeping the original pixels.
     BufferedImage image = autoCropper.cropIfBeneficial(source, template.isAutoCropEnabled());
-    // Step 2: build the poster (header, image, results, logos, text bar) around the resulting photo.
+    // Step 2: apply a light retouch (sharpen + contrast + saturation) so the photo looks better.
+    image = imageEnhancer.enhanceIfEnabled(image, template.isEnhanceEnabled());
+    // Step 3: build the poster (header, image, results, logos, text bar) around the resulting photo.
     PosterLayout layout = layout(image, template);
     BufferedImage output = new BufferedImage(layout.width(), layout.height(), BufferedImage.TYPE_INT_ARGB);
     Graphics2D graphics = output.createGraphics();
@@ -224,7 +227,7 @@ public class BrandingRenderer {
     int textX = hPadding + leftLogoWidth + (leftLogoWidth > 0 ? hPadding : 0);
     int textRight = output.getWidth() - hPadding - rightLogoWidth - (rightLogoWidth > 0 ? hPadding : 0);
     int textWidth = Math.max(80, textRight - textX);
-    graphics.setColor(ColorParser.parse(template.getHeaderTextColor(), Color.WHITE));
+    Color headerTextColor = ColorParser.parse(template.getHeaderTextColor(), Color.WHITE);
 
     String subtitle = nullToEmpty(template.getHeaderSubtitle()).strip();
     int subtitleSize = subtitle.isBlank() ? 0 : Math.max(10, height / 9);
@@ -240,14 +243,23 @@ public class BrandingRenderer {
     int y = vPadding + titleSize;
     for (String line : wrapLines(nullToEmpty(template.getHeaderTitle()), graphics, titleFont, textWidth, maxLines)) {
       graphics.setFont(titleFont);
-      graphics.drawString(line, textX, y);
+      drawTextWithShadow(graphics, line, textX, y, headerTextColor);
       y += lineStep;
     }
 
     if (!subtitle.isBlank()) {
       graphics.setFont(new Font(template.getFontName(), Font.PLAIN, subtitleSize));
-      graphics.drawString(subtitle, textX, Math.min(height - vPadding, y + subtitleSize));
+      drawTextWithShadow(graphics, subtitle, textX, Math.min(height - vPadding, y + subtitleSize), headerTextColor);
     }
+  }
+
+  /** Draws text with a soft shadow so it stays legible over the faded part of the header background. */
+  private static void drawTextWithShadow(Graphics2D graphics, String text, int x, int y, Color color) {
+    int offset = Math.max(1, graphics.getFont().getSize() / 22);
+    graphics.setColor(new Color(0, 0, 0, 120));
+    graphics.drawString(text, x + offset, y + offset);
+    graphics.setColor(color);
+    graphics.drawString(text, x, y);
   }
 
   private int drawHeaderLogo(

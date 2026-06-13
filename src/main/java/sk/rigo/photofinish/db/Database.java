@@ -57,6 +57,7 @@ public class Database {
             canvas_height INTEGER NOT NULL DEFAULT 1920,
             image_fit_mode TEXT NOT NULL DEFAULT 'COVER',
             auto_crop_enabled INTEGER NOT NULL DEFAULT 1,
+            enhance_enabled INTEGER NOT NULL DEFAULT 1,
             canvas_background_color TEXT NOT NULL DEFAULT '#F6F8FA',
             header_enabled INTEGER NOT NULL DEFAULT 1,
             header_height_percent REAL NOT NULL DEFAULT 10,
@@ -111,6 +112,7 @@ public class Database {
     addColumnIfMissing(connection, "branding_templates", "canvas_height", "INTEGER NOT NULL DEFAULT 1920");
     addColumnIfMissing(connection, "branding_templates", "image_fit_mode", "TEXT NOT NULL DEFAULT 'COVER'");
     addColumnIfMissing(connection, "branding_templates", "auto_crop_enabled", "INTEGER NOT NULL DEFAULT 1");
+    addColumnIfMissing(connection, "branding_templates", "enhance_enabled", "INTEGER NOT NULL DEFAULT 1");
     addColumnIfMissing(connection, "branding_templates", "canvas_background_color", "TEXT NOT NULL DEFAULT '#F6F8FA'");
     addColumnIfMissing(connection, "branding_templates", "header_enabled", "INTEGER NOT NULL DEFAULT 1");
     addColumnIfMissing(connection, "branding_templates", "header_height_percent", "REAL NOT NULL DEFAULT 10");

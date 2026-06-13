@@ -109,6 +109,7 @@ public class MainView {
   private Spinner<Integer> canvasHeightField;
   private ComboBox<ImageFitMode> imageFitModeField;
   private CheckBox autoCropEnabledField;
+  private CheckBox enhanceEnabledField;
   private TextField canvasBackgroundColorField;
   private CheckBox headerEnabledField;
   private Slider headerHeightField;
@@ -267,6 +268,7 @@ public class MainView {
     canvasHeightField = spinner(320, 5000, 1920);
     imageFitModeField = new ComboBox<>(FXCollections.observableArrayList(ImageFitMode.values()));
     autoCropEnabledField = new CheckBox("Auto-crop empty (no athlete) areas of long strips");
+    enhanceEnabledField = new CheckBox("Enhance image (sharpen, contrast, saturation)");
     canvasBackgroundColorField = new TextField();
     headerEnabledField = new CheckBox("Show top header");
     headerHeightField = slider(5, 30, 10);
@@ -324,6 +326,7 @@ public class MainView {
     grid.add(new Label("Image fit"), 0, row);
     grid.add(imageFitModeField, 1, row++, 2, 1);
     grid.add(autoCropEnabledField, 1, row++, 2, 1);
+    grid.add(enhanceEnabledField, 1, row++, 2, 1);
     grid.add(new Label("Canvas background"), 0, row);
     grid.add(canvasBackgroundColorField, 1, row++, 2, 1);
 
@@ -615,6 +618,7 @@ public class MainView {
     int canvasHeight = canvasHeightField.getValue();
     ImageFitMode imageFitMode = imageFitModeField.getValue();
     boolean autoCropEnabled = autoCropEnabledField.isSelected();
+    boolean enhanceEnabled = enhanceEnabledField.isSelected();
     String canvasBackgroundColor = canvasBackgroundColorField.getText().trim();
     boolean headerEnabled = headerEnabledField.isSelected();
     double headerHeight = headerHeightField.getValue();
@@ -658,6 +662,7 @@ public class MainView {
             template.setCanvasHeight(canvasHeight);
             template.setImageFitMode(valueOrDefault(imageFitMode, ImageFitMode.ORIGINAL));
             template.setAutoCropEnabled(autoCropEnabled);
+            template.setEnhanceEnabled(enhanceEnabled);
             template.setCanvasBackgroundColor(canvasBackgroundColor);
             template.setHeaderEnabled(headerEnabled);
             template.setHeaderHeightPercent(headerHeight);
@@ -782,6 +787,7 @@ public class MainView {
     canvasHeightField.getValueFactory().setValue(template.getCanvasHeight());
     imageFitModeField.setValue(valueOrDefault(template.getImageFitMode(), ImageFitMode.ORIGINAL));
     autoCropEnabledField.setSelected(template.isAutoCropEnabled());
+    enhanceEnabledField.setSelected(template.isEnhanceEnabled());
     canvasBackgroundColorField.setText(template.getCanvasBackgroundColor());
     headerEnabledField.setSelected(template.isHeaderEnabled());
     headerHeightField.setValue(template.getHeaderHeightPercent());
@@ -897,6 +903,7 @@ public class MainView {
     template.setCanvasHeight(canvasHeightField.getValue());
     template.setImageFitMode(valueOrDefault(imageFitModeField.getValue(), ImageFitMode.ORIGINAL));
     template.setAutoCropEnabled(autoCropEnabledField.isSelected());
+    template.setEnhanceEnabled(enhanceEnabledField.isSelected());
     template.setCanvasBackgroundColor(canvasBackgroundColorField.getText().trim());
     template.setHeaderEnabled(headerEnabledField.isSelected());
     template.setHeaderHeightPercent(headerHeightField.getValue());

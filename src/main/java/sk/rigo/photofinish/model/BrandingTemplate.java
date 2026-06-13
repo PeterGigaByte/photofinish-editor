@@ -23,6 +23,7 @@ public class BrandingTemplate {
   private int canvasHeight;
   private ImageFitMode imageFitMode;
   private boolean autoCropEnabled;
+  private boolean enhanceEnabled;
   private String canvasBackgroundColor;
   private boolean headerEnabled;
   private double headerHeightPercent;
@@ -62,6 +63,7 @@ public class BrandingTemplate {
     template.setCanvasHeight(1920);
     template.setImageFitMode(ImageFitMode.ORIGINAL);
     template.setAutoCropEnabled(true);
+    template.setEnhanceEnabled(true);
     template.setCanvasBackgroundColor("#F6F8FA");
     template.setHeaderEnabled(true);
     template.setHeaderHeightPercent(10.0);
@@ -251,6 +253,14 @@ public class BrandingTemplate {
 
   public void setAutoCropEnabled(boolean autoCropEnabled) {
     this.autoCropEnabled = autoCropEnabled;
+  }
+
+  public boolean isEnhanceEnabled() {
+    return enhanceEnabled;
+  }
+
+  public void setEnhanceEnabled(boolean enhanceEnabled) {
+    this.enhanceEnabled = enhanceEnabled;
   }
 
   public String getCanvasBackgroundColor() {
