@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "0.1.7",
-    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.7/PhotoFinishBrandingStudio-0.1.7.msi",
-    "sha256":  "F4483603B5E2FB4AA5FAA82C80D065F11D58B75DA171DF02CB78015ACD67BC03",
-    "notes":  "Adds an optional image retouch (mild sharpen, contrast, saturation) for crisper photos, and a soft shadow on the header text so it stays legible over the faded header background."
+    "version":  "0.1.8",
+    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.8/PhotoFinishBrandingStudio-0.1.8.msi",
+    "sha256":  "8078E1DC3A65846EB35DA6EF8ED3248487EE28791204F501DF8B7D12A7EEA452",
+    "notes":  "Fix auto-crop clipping participants: detection now uses colour distance with a robust low threshold and larger safety margins, and never collapses small gaps. Athletes (including those matching the track brightness but differing in colour) are no longer cropped."
 }

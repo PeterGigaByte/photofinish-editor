@@ -32,10 +32,21 @@ public class PhotofinishAutoCropper {
   private static final int MAX_ROW_SAMPLES = 256;
   /** Upper bound on the number of columns sampled when estimating the per-row background. */
   private static final int MAX_BG_COLUMN_SAMPLES = 512;
-  /** Fraction of the high activity level above the floor at which a column counts as containing a participant. */
-  private static final double ACTIVITY_THRESHOLD_FRACTION = 0.15;
-  /** Padding kept on each side of the detected participant span, as a fraction of the original width. */
-  private static final double MARGIN_FRACTION = 0.02;
+  /** Percentile of column activity treated as the empty-background level. */
+  private static final double EMPTY_PERCENTILE = 0.10;
+  /** Near-top percentile used as the "busy" reference (robust to a single bright outlier column). */
+  private static final double CONTENT_PERCENTILE = 0.99;
+  /**
+   * How far above the empty level (as a fraction of the empty→busy span) a column must be to count as
+   * containing a participant. Deliberately low so faint athletes are kept, never trimmed.
+   */
+  private static final double CONTENT_THRESHOLD_FRACTION = 0.06;
+  /** Absolute minimum activity above background (summed over R+G+B) before a column counts as content. */
+  private static final double MIN_ACTIVITY_DELTA = 6.0;
+  /** Padding of real background kept on each side of every participant cluster, as a fraction of width. */
+  private static final double MARGIN_FRACTION = 0.03;
+  /** Empty gaps narrower than this fraction of the width are kept intact, never collapsed. */
+  private static final double MIN_REMOVABLE_GAP_FRACTION = 0.08;
 
   /**
    * Returns an auto-cropped view of {@code source} when cropping is requested and beneficial,
@@ -54,27 +65,37 @@ public class PhotofinishAutoCropper {
 
     int rowStep = Math.max(1, height / MAX_ROW_SAMPLES);
     int[] sampledRows = sampledIndices(height, rowStep);
-    int[] background = backgroundLumaPerRow(source, sampledRows, width);
+    int[][] background = backgroundColorPerRow(source, sampledRows, width);
 
+    // Per-column activity = how far the column's colour differs from the static background, summed
+    // over R+G+B. Using colour (not just brightness) catches athletes whose jersey matches the
+    // track brightness but differs in hue, so they are not mistaken for empty track.
     double[] activity = new double[width];
-    double max = 0.0;
-    double min = Double.MAX_VALUE;
     for (int x = 0; x < width; x++) {
       long sum = 0;
       for (int i = 0; i < sampledRows.length; i++) {
-        sum += Math.abs(luma(source.getRGB(x, sampledRows[i])) - background[i]);
+        int rgb = source.getRGB(x, sampledRows[i]);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        sum += Math.abs(r - background[i][0]) + Math.abs(g - background[i][1]) + Math.abs(b - background[i][2]);
       }
-      double value = (double) sum / sampledRows.length;
-      activity[x] = value;
-      max = Math.max(max, value);
-      min = Math.min(min, value);
+      activity[x] = (double) sum / sampledRows.length;
     }
 
-    double threshold = min + (max - min) * ACTIVITY_THRESHOLD_FRACTION;
+    // Robust threshold: compare against percentiles so a single bright feature cannot inflate the
+    // scale and push real (fainter) participants below the line. The bar is deliberately low and
+    // biased towards KEEPING columns, so participants are never trimmed.
+    double[] sorted = activity.clone();
+    Arrays.sort(sorted);
+    double emptyLevel = percentile(sorted, EMPTY_PERCENTILE);
+    double contentLevel = percentile(sorted, CONTENT_PERCENTILE);
+    double threshold = emptyLevel
+        + Math.max(MIN_ACTIVITY_DELTA, (contentLevel - emptyLevel) * CONTENT_THRESHOLD_FRACTION);
 
     // Group active columns into participant clusters, ignoring 1-2px noise so a stray pixel does
     // not pin an otherwise empty region as "kept".
-    int minClusterWidth = Math.max(2, width / 400);
+    int minClusterWidth = Math.max(2, width / 600);
     List<int[]> clusters = new ArrayList<>();
     int runStart = -1;
     for (int x = 0; x < width; x++) {
@@ -98,13 +119,26 @@ public class PhotofinishAutoCropper {
       return source;
     }
 
+    // Keep small gaps intact: a short low-activity stretch may be a low-contrast part of an athlete
+    // (between arms/legs), so only genuinely large empty runs are eligible for removal.
+    int minRemovableGap = Math.max(2 * (int) Math.round(width * MARGIN_FRACTION),
+        (int) Math.round(width * MIN_REMOVABLE_GAP_FRACTION));
+    List<int[]> bridged = new ArrayList<>();
+    for (int[] cluster : clusters) {
+      if (!bridged.isEmpty() && cluster[0] - bridged.get(bridged.size() - 1)[1] - 1 < minRemovableGap) {
+        bridged.get(bridged.size() - 1)[1] = cluster[1];
+      } else {
+        bridged.add(new int[]{cluster[0], cluster[1]});
+      }
+    }
+
     // Expand every cluster by a safety margin of real background on both sides, then merge ranges
     // that touch or overlap. Concatenating the kept ranges removes the empty space at the front, the
     // back and between participants, while the margin guarantees no athlete is clipped and adjacent
     // participants keep a visible buffer between them.
-    int margin = (int) Math.round(width * MARGIN_FRACTION);
+    int margin = Math.max(12, (int) Math.round(width * MARGIN_FRACTION));
     List<int[]> keep = new ArrayList<>();
-    for (int[] cluster : clusters) {
+    for (int[] cluster : bridged) {
       int start = Math.max(0, cluster[0] - margin);
       int end = Math.min(width - 1, cluster[1] + margin);
       if (!keep.isEmpty() && start <= keep.get(keep.size() - 1)[1] + 1) {
@@ -141,17 +175,24 @@ public class PhotofinishAutoCropper {
     return cropped;
   }
 
-  private static int[] backgroundLumaPerRow(BufferedImage source, int[] sampledRows, int width) {
+  private static int[][] backgroundColorPerRow(BufferedImage source, int[] sampledRows, int width) {
     int columnStep = Math.max(1, width / MAX_BG_COLUMN_SAMPLES);
     int[] sampledColumns = sampledIndices(width, columnStep);
-    int[] background = new int[sampledRows.length];
-    int[] columnLuma = new int[sampledColumns.length];
+    int[][] background = new int[sampledRows.length][3];
+    int[] reds = new int[sampledColumns.length];
+    int[] greens = new int[sampledColumns.length];
+    int[] blues = new int[sampledColumns.length];
     for (int i = 0; i < sampledRows.length; i++) {
       int y = sampledRows[i];
       for (int j = 0; j < sampledColumns.length; j++) {
-        columnLuma[j] = luma(source.getRGB(sampledColumns[j], y));
+        int rgb = source.getRGB(sampledColumns[j], y);
+        reds[j] = (rgb >> 16) & 0xFF;
+        greens[j] = (rgb >> 8) & 0xFF;
+        blues[j] = rgb & 0xFF;
       }
-      background[i] = median(columnLuma);
+      background[i][0] = median(reds);
+      background[i][1] = median(greens);
+      background[i][2] = median(blues);
     }
     return background;
   }
@@ -171,10 +212,12 @@ public class PhotofinishAutoCropper {
     return copy[copy.length / 2];
   }
 
-  private static int luma(int argb) {
-    int r = (argb >> 16) & 0xFF;
-    int g = (argb >> 8) & 0xFF;
-    int b = argb & 0xFF;
-    return (int) Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+  private static double percentile(double[] sortedAscending, double quantile) {
+    if (sortedAscending.length == 0) {
+      return 0.0;
+    }
+    int index = (int) Math.round(quantile * (sortedAscending.length - 1));
+    index = Math.max(0, Math.min(sortedAscending.length - 1, index));
+    return sortedAscending[index];
   }
 }

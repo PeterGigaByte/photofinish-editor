@@ -50,7 +50,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.7.jar
+java -jar target\photofinish-app-0.1.8.jar
 ```
 
 ## Build a Windows installer
@@ -63,10 +63,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.7 `
+  --app-version 0.1.8 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.7.jar `
+  --main-jar photofinish-app-0.1.8.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --icon target\app-icon.ico `

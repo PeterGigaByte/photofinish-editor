@@ -48,18 +48,36 @@ class PhotofinishAutoCropperTest {
 
     BufferedImage cropped = cropper.cropIfBeneficial(strip, true);
 
-    int margin = Math.round(width * 0.02f); // 30px safety margin per side
-    int twoClustersWithMargins = (100 + 2 * margin) * 2; // both participants + their margins
+    int spanBetweenClusterEdges = 1200 - 200; // first participant start to second participant end
     // The empty front, back and the gap between the two participants are removed...
     assertTrue(cropped.getWidth() < width, "empty space must be removed");
-    // ...but each participant keeps its safety margin, so the result is no smaller than the two
-    // padded clusters and far smaller than the original span between them.
+    // ...both participants are fully preserved (each is 100px wide)...
+    assertTrue(cropped.getWidth() >= 2 * 100, "both participants must be fully preserved");
+    // ...and the large gap between them is collapsed, so the result is far smaller than their span.
     assertTrue(
-        cropped.getWidth() >= 2 * 100,
-        "both participants must be fully preserved");
-    assertTrue(
-        cropped.getWidth() <= twoClustersWithMargins + 4,
-        "the gap between participants must be collapsed to the safety margins");
+        cropped.getWidth() < spanBetweenClusterEdges * 0.6,
+        "the empty gap between participants must be collapsed");
+    assertEquals(height, cropped.getHeight());
+  }
+
+  @Test
+  void keepsParticipantThatMatchesBackgroundBrightnessButDiffersInColour() {
+    int width = 2000;
+    int height = 200;
+    BufferedImage strip = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = strip.createGraphics();
+    graphics.setColor(new Color(128, 128, 128)); // grey track
+    graphics.fillRect(0, 0, width, height);
+    // A participant whose brightness is ~equal to the track but whose colour is very different.
+    // A brightness-only detector would treat this as empty and crop the athlete away.
+    graphics.setColor(new Color(180, 100, 150));
+    graphics.fillRect(700, 0, 600, height); // participant 700..1299
+    graphics.dispose();
+
+    BufferedImage cropped = cropper.cropIfBeneficial(strip, true);
+
+    assertTrue(cropped.getWidth() < width, "empty ends must still be removed");
+    assertTrue(cropped.getWidth() >= 600, "the colour-only participant must be fully kept, not cropped");
     assertEquals(height, cropped.getHeight());
   }
 
