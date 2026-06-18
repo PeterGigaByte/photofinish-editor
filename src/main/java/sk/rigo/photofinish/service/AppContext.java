@@ -2,6 +2,7 @@ package sk.rigo.photofinish.service;
 
 import sk.rigo.photofinish.config.AppMetadata;
 import sk.rigo.photofinish.config.AppPaths;
+import sk.rigo.photofinish.api.AthleticOfficeService;
 import sk.rigo.photofinish.repository.BrandingTemplateRepository;
 import sk.rigo.photofinish.repository.ProcessedFileRepository;
 import sk.rigo.photofinish.repository.ProcessingErrorRepository;
@@ -18,6 +19,7 @@ public record AppContext(
     ProcessingErrorRepository errorRepository,
     FileProcessingService processingService,
     FolderWatcherService watcherService,
+    AthleticOfficeService athleticOfficeService,
     UpdateService updateService
 ) implements AutoCloseable {
 

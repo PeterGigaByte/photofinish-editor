@@ -40,6 +40,10 @@ public class SettingsRepository {
     settings.setLatestJsonUrl(normalizeLatestJsonUrl(latestJsonUrl));
     settings.setActiveTemplateId(parseLong(values.get("activeTemplateId"), settings.getActiveTemplateId()));
     settings.setAutoStartWatcher(Boolean.parseBoolean(values.getOrDefault("autoStartWatcher", "false")));
+    settings.setAthleticOfficeApiEnabled(Boolean.parseBoolean(values.getOrDefault("athleticOfficeApiEnabled", "false")));
+    settings.setAthleticOfficeBaseUrl(normalizeText(values.getOrDefault("athleticOfficeBaseUrl", settings.getAthleticOfficeBaseUrl())));
+    settings.setAthleticOfficeActiveRaceId(normalizeText(values.getOrDefault("athleticOfficeActiveRaceId", settings.getAthleticOfficeActiveRaceId())));
+    settings.setAthleticOfficeConnectionId(normalizeText(values.getOrDefault("athleticOfficeConnectionId", settings.getAthleticOfficeConnectionId())));
 
     if (values.isEmpty() || LEGACY_PLACEHOLDER_UPDATE_URL.equals(latestJsonUrl)) {
       save(settings);
@@ -54,6 +58,10 @@ public class SettingsRepository {
       upsert(connection, "latestJsonUrl", settings.getLatestJsonUrl());
       upsert(connection, "activeTemplateId", Long.toString(settings.getActiveTemplateId()));
       upsert(connection, "autoStartWatcher", Boolean.toString(settings.isAutoStartWatcher()));
+      upsert(connection, "athleticOfficeApiEnabled", Boolean.toString(settings.isAthleticOfficeApiEnabled()));
+      upsert(connection, "athleticOfficeBaseUrl", settings.getAthleticOfficeBaseUrl());
+      upsert(connection, "athleticOfficeActiveRaceId", settings.getAthleticOfficeActiveRaceId());
+      upsert(connection, "athleticOfficeConnectionId", settings.getAthleticOfficeConnectionId());
     }
   }
 
@@ -64,6 +72,10 @@ public class SettingsRepository {
     settings.setLatestJsonUrl("");
     settings.setActiveTemplateId(0L);
     settings.setAutoStartWatcher(false);
+    settings.setAthleticOfficeApiEnabled(false);
+    settings.setAthleticOfficeBaseUrl("");
+    settings.setAthleticOfficeActiveRaceId("");
+    settings.setAthleticOfficeConnectionId("");
     return settings;
   }
 
@@ -95,5 +107,9 @@ public class SettingsRepository {
       return "";
     }
     return value.trim();
+  }
+
+  private static String normalizeText(String value) {
+    return value == null ? "" : value.trim();
   }
 }

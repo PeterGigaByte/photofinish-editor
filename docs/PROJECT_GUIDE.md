@@ -35,6 +35,7 @@ Do not store mutable app data inside the installation directory.
 src/main/java/sk/rigo/photofinish
   MainApp.java
   Launcher.java
+  api
   config
   db
   image
@@ -57,6 +58,7 @@ src/main/java/sk/rigo/photofinish
 - loads settings
 - ensures the default branding template exists
 - wires repositories and services
+- creates `AthleticOfficeService` for optional per-photo race/result metadata
 - starts JavaFX `MainView`
 
 ## Database
@@ -92,14 +94,36 @@ Flow:
 1. Queue the file (`queueForProcessing`): insert a `QUEUED` row for a new path, re-queue when the content at a known path changed, or skip when unchanged.
 2. Mark `PROCESSING`.
 3. Wait for source file stability, then refresh the stored size + last-modified fingerprint.
-4. Render branding with `BrandingRenderer`.
-5. Write staged output with `ImageExporter`.
-6. Copy to export path.
-7. Mark `EXPORTED`, `PENDING_EXPORT`, or `FAILED`.
+4. Resolve optional AthleticOffice metadata when API integration is enabled.
+5. Render branding with `BrandingRenderer`.
+6. Write staged output with `ImageExporter`.
+7. Copy to export path.
+8. Mark `EXPORTED`, `PENDING_EXPORT`, or `FAILED`.
 
 `PENDING_EXPORT` is valid when the export path is offline or inaccessible.
 
 Exported files keep the input's base name (e.g. `race1.jpg` → `race1.<output-extension>`). Re-exporting changed content under the same name overwrites the previous export.
+
+## AthleticOffice API
+
+`AthleticOfficeService` lives in `api` and is independent of JavaFX. It uses Java `HttpClient` and a small local JSON parser to read the endpoints shown by AthleticOffice:
+
+- `/api/races/active`
+- `/api/disciplines?`
+- `/api/results/v3?disciplineIds=[<disciplineId>]&onlyUnregistered=false`
+
+Settings are stored in `app_settings`:
+
+- `athleticOfficeApiEnabled`
+- `athleticOfficeBaseUrl`
+- `athleticOfficeActiveRaceId`
+- `athleticOfficeConnectionId`
+
+When enabled, the source image base name must match the discipline `cameraId` (for example `23.jpg`). The service matches `cameraId` first and `uniqueCameraId` second, then supplies `BrandingMetadata` with header text, result title, result rows, and placeholders. Missing API data or an unmatched camera ID fails processing so the app does not export an image with stale or unrelated results.
+
+Result rows include order, lane/track, athlete, bib, result, reaction time from `reactionTime`, and PB/SB record text. Wind is read from the discipline `wind` field first, then from result `bestWind` / `regularTrialWind` when needed.
+
+The Folders tab has a `Check API` action. Keep it on the UI worker executor; network checks must never run on the JavaFX thread.
 
 ## Image Rendering
 
@@ -124,7 +148,7 @@ Supported features:
 - opacity
 - x/y offsets
 - optional bottom text bar
-- text template placeholders
+- text template placeholders, including optional AthleticOffice placeholders when API metadata is present
 - optional bottom results table with editable rows and colors
 
 Preview rendering uses the same renderer, but it does not write output files or create history rows.

@@ -1,6 +1,7 @@
 package sk.rigo.photofinish.image;
 
 import sk.rigo.photofinish.model.BrandingTemplate;
+import sk.rigo.photofinish.model.BrandingMetadata;
 import sk.rigo.photofinish.model.HeaderFade;
 import sk.rigo.photofinish.model.ImageFitMode;
 import sk.rigo.photofinish.model.LogoPosition;
@@ -33,15 +34,29 @@ public class BrandingRenderer {
   }
 
   public BufferedImage render(Path sourcePath, BrandingTemplate template) throws IOException {
+    return render(sourcePath, template, BrandingMetadata.empty());
+  }
+
+  public BufferedImage render(Path sourcePath, BrandingTemplate template, BrandingMetadata metadata) throws IOException {
     BufferedImage source = ImageIO.read(sourcePath.toFile());
     if (source == null) {
       throw new IOException("Unsupported image file: " + sourcePath);
     }
 
-    return render(source, sourcePath, template);
+    return render(source, sourcePath, template, metadata);
   }
 
   public BufferedImage render(BufferedImage source, Path sourcePath, BrandingTemplate template) throws IOException {
+    return render(source, sourcePath, template, BrandingMetadata.empty());
+  }
+
+  public BufferedImage render(
+      BufferedImage source,
+      Path sourcePath,
+      BrandingTemplate template,
+      BrandingMetadata metadata
+  ) throws IOException {
+    metadata = metadata == null ? BrandingMetadata.empty() : metadata;
     // Step 1: trim the empty (no-participant) stretches from long strips, keeping the original pixels.
     BufferedImage image = autoCropper.crop(
         source,
@@ -59,10 +74,10 @@ public class BrandingRenderer {
       graphics.setColor(ColorParser.parse(template.getCanvasBackgroundColor(), Color.WHITE));
       graphics.fillRect(0, 0, output.getWidth(), output.getHeight());
       drawSourceImage(graphics, image, layout.imageArea(), template);
-      drawTextBar(graphics, sourcePath, layout.imageArea(), output.getWidth(), template);
+      drawTextBar(graphics, sourcePath, layout.imageArea(), output.getWidth(), template, metadata);
       drawLogo(graphics, output, template);
-      drawHeader(graphics, output, layout.headerHeight(), template);
-      drawResultsTable(graphics, output, layout.resultsHeight(), template);
+      drawHeader(graphics, output, layout.headerHeight(), sourcePath, template, metadata);
+      drawResultsTable(graphics, output, layout.resultsHeight(), sourcePath, template, metadata);
     } finally {
       graphics.dispose();
     }
@@ -143,7 +158,8 @@ public class BrandingRenderer {
       Path sourcePath,
       Rectangle targetArea,
       int outputWidth,
-      BrandingTemplate template
+      BrandingTemplate template,
+      BrandingMetadata metadata
   ) {
     if (!template.isTextBarEnabled()) {
       return;
@@ -154,7 +170,7 @@ public class BrandingRenderer {
     graphics.setColor(ColorParser.parse(template.getTextBarColor(), new Color(0, 0, 0, 190)));
     graphics.fillRect(targetArea.x, y, targetArea.width, barHeight);
 
-    String text = textTemplateEngine.render(template.getTextTemplate(), sourcePath);
+    String text = textTemplateEngine.render(template.getTextTemplate(), sourcePath, metadata.placeholders());
     if (text.isBlank()) {
       return;
     }
@@ -202,7 +218,14 @@ public class BrandingRenderer {
     graphics.setComposite(previousComposite);
   }
 
-  private void drawHeader(Graphics2D graphics, BufferedImage output, int height, BrandingTemplate template) throws IOException {
+  private void drawHeader(
+      Graphics2D graphics,
+      BufferedImage output,
+      int height,
+      Path sourcePath,
+      BrandingTemplate template,
+      BrandingMetadata metadata
+  ) throws IOException {
     if (!template.isHeaderEnabled() || height <= 0) {
       return;
     }
@@ -240,7 +263,9 @@ public class BrandingRenderer {
     int textWidth = Math.max(80, textRight - textX);
     Color headerTextColor = ColorParser.parse(template.getHeaderTextColor(), Color.WHITE);
 
-    String subtitle = nullToEmpty(template.getHeaderSubtitle()).strip();
+    String subtitle = (metadata.hasHeaderSubtitle()
+        ? metadata.headerSubtitle()
+        : textTemplateEngine.render(template.getHeaderSubtitle(), sourcePath, metadata.placeholders())).strip();
     int subtitleSize = subtitle.isBlank() ? 0 : Math.max(10, height / 9);
     int subtitleGap = subtitle.isBlank() ? 0 : Math.max(2, height / 20);
 
@@ -252,7 +277,10 @@ public class BrandingRenderer {
 
     Font titleFont = new Font(template.getFontName(), Font.BOLD, titleSize);
     int y = vPadding + titleSize;
-    for (String line : wrapLines(nullToEmpty(template.getHeaderTitle()), graphics, titleFont, textWidth, maxLines)) {
+    String title = metadata.hasHeaderTitle()
+        ? metadata.headerTitle()
+        : textTemplateEngine.render(template.getHeaderTitle(), sourcePath, metadata.placeholders());
+    for (String line : wrapLines(title, graphics, titleFont, textWidth, maxLines)) {
       graphics.setFont(titleFont);
       drawTextWithShadow(graphics, line, textX, y, headerTextColor);
       y += lineStep;
@@ -307,7 +335,14 @@ public class BrandingRenderer {
     return size[0];
   }
 
-  private void drawResultsTable(Graphics2D graphics, BufferedImage output, int height, BrandingTemplate template) {
+  private void drawResultsTable(
+      Graphics2D graphics,
+      BufferedImage output,
+      int height,
+      Path sourcePath,
+      BrandingTemplate template,
+      BrandingMetadata metadata
+  ) {
     if (!template.isResultsEnabled() || height <= 0) {
       return;
     }
@@ -327,7 +362,10 @@ public class BrandingRenderer {
     graphics.fillRect(0, y, output.getWidth(), titleHeight);
     graphics.setColor(Color.WHITE);
     graphics.setFont(new Font(template.getFontName(), Font.BOLD, Math.max(16, titleHeight / 2)));
-    graphics.drawString(nullToEmpty(template.getResultsTitle()), padding, y + titleHeight - Math.max(8, titleHeight / 5));
+    String title = metadata.hasResultsTitle()
+        ? metadata.resultsTitle()
+        : textTemplateEngine.render(template.getResultsTitle(), sourcePath, metadata.placeholders());
+    graphics.drawString(title, padding, y + titleHeight - Math.max(8, titleHeight / 5));
 
     int tableTop = y + titleHeight;
     int rowHeight = Math.max(22, (height - titleHeight) / 8);
@@ -342,7 +380,10 @@ public class BrandingRenderer {
         "PORADIE", "LN", "ATLET", "BIB", "VYSLEDOK", "ROZDIEL", "REAKCIA", "PB / SB"
     }, false, accent);
 
-    List<String[]> rows = parseResultRows(template.getResultsRowsText());
+    String rowsText = metadata.hasResultsRowsText()
+        ? metadata.resultsRowsText()
+        : textTemplateEngine.render(template.getResultsRowsText(), sourcePath, metadata.placeholders());
+    List<String[]> rows = parseResultRows(rowsText);
     graphics.setFont(new Font(template.getFontName(), Font.PLAIN, Math.max(12, rowHeight / 3 + 4)));
     int rowY = tableTop + headerRowHeight;
     for (int i = 0; i < rows.size() && rowY + rowHeight <= output.getHeight(); i++) {

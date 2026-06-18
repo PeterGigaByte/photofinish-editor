@@ -25,6 +25,7 @@ Update docs when changing:
 - UI screens, controls, labels, or workflows
 - folder watcher behavior
 - image rendering/export behavior
+- external API integrations or API-backed workflows
 - update check, download, or installer launch behavior
 - database schema
 - app-data/log/staging paths
@@ -71,4 +72,3 @@ Before final response:
 - no `target/` files are staged
 - no local databases/logs/AppData files are staged
 - no personal secrets or local paths were added except documented examples
-

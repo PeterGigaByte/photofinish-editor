@@ -7,6 +7,7 @@ import sk.rigo.photofinish.config.AppMetadata;
 import sk.rigo.photofinish.config.AppPaths;
 import sk.rigo.photofinish.config.AppSettings;
 import sk.rigo.photofinish.config.AppLogger;
+import sk.rigo.photofinish.api.AthleticOfficeService;
 import sk.rigo.photofinish.db.Database;
 import sk.rigo.photofinish.image.BrandingRenderer;
 import sk.rigo.photofinish.image.ImageExporter;
@@ -52,12 +53,14 @@ public class MainApp extends Application {
     }
 
     ImageExporter imageExporter = new ImageExporter(paths.stagingDirectory());
+    AthleticOfficeService athleticOfficeService = new AthleticOfficeService();
     FileProcessingService processingService = new FileProcessingService(
         settingsRepository,
         templateRepository,
         processedFileRepository,
         errorRepository,
         new StableFileDetector(),
+        athleticOfficeService,
         new BrandingRenderer(),
         imageExporter
     );
@@ -73,6 +76,7 @@ public class MainApp extends Application {
         errorRepository,
         processingService,
         watcherService,
+        athleticOfficeService,
         updateService
     );
 

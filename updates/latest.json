@@ -1,6 +1,6 @@
 ﻿{
-    "version":  "0.1.9",
-    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.9/PhotoFinishBrandingStudio-0.1.9.msi",
-    "sha256":  "3621DA69FDCA2C1FB5BE5D3B08BE7BDA4854FB6EF796B7D4A85526A4E3ABA3D3",
-    "notes":  "Vertical auto-crop of empty space above/below athletes; between-participant gap removal is now opt-in (off by default, keeps the time scale honest); automatic histogram-based image enhancement; configurable header fade (default fades out to the right, with a text shadow); crisp multi-size window icon."
+    "version":  "0.1.10",
+    "installerUrl":  "https://raw.githubusercontent.com/PeterGigaByte/photofinish-editor/master/updates/v0.1.10/PhotoFinishBrandingStudio-0.1.10.msi",
+    "sha256":  "D67EC72DCCB0C576FA07663C102C81C2F6E953156AD5AE63FE689F7D6F18D6A0",
+    "notes":  "AthleticOffice API integration for cameraId-named photos, API-backed header/result metadata and template placeholders, a Check API action in folder settings, and a renderer fix so placeholder-only metadata still renders template result rows."
 }

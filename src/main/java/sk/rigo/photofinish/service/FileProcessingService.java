@@ -1,9 +1,11 @@
 package sk.rigo.photofinish.service;
 
 import sk.rigo.photofinish.config.AppSettings;
+import sk.rigo.photofinish.api.AthleticOfficeService;
 import sk.rigo.photofinish.image.BrandingRenderer;
 import sk.rigo.photofinish.image.ExportResult;
 import sk.rigo.photofinish.image.ImageExporter;
+import sk.rigo.photofinish.model.BrandingMetadata;
 import sk.rigo.photofinish.model.BrandingTemplate;
 import sk.rigo.photofinish.model.ProcessedFile;
 import sk.rigo.photofinish.model.ProcessingStatus;
@@ -36,6 +38,7 @@ public class FileProcessingService implements AutoCloseable {
   private final ProcessedFileRepository processedFileRepository;
   private final ProcessingErrorRepository errorRepository;
   private final StableFileDetector stableFileDetector;
+  private final AthleticOfficeService athleticOfficeService;
   private final BrandingRenderer brandingRenderer;
   private final ImageExporter imageExporter;
   private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
@@ -51,6 +54,7 @@ public class FileProcessingService implements AutoCloseable {
       ProcessedFileRepository processedFileRepository,
       ProcessingErrorRepository errorRepository,
       StableFileDetector stableFileDetector,
+      AthleticOfficeService athleticOfficeService,
       BrandingRenderer brandingRenderer,
       ImageExporter imageExporter
   ) {
@@ -59,6 +63,7 @@ public class FileProcessingService implements AutoCloseable {
     this.processedFileRepository = processedFileRepository;
     this.errorRepository = errorRepository;
     this.stableFileDetector = stableFileDetector;
+    this.athleticOfficeService = athleticOfficeService;
     this.brandingRenderer = brandingRenderer;
     this.imageExporter = imageExporter;
   }
@@ -134,7 +139,8 @@ public class FileProcessingService implements AutoCloseable {
       // are recognised as already handled, while genuinely new content at the same name re-exports.
       processedFileRepository.updateSourceFingerprint(
           recordId, Files.size(sourcePath), Files.getLastModifiedTime(sourcePath).toInstant());
-      BufferedImage rendered = brandingRenderer.render(sourcePath, template);
+      BrandingMetadata metadata = athleticOfficeService.metadataFor(sourcePath, settings);
+      BufferedImage rendered = brandingRenderer.render(sourcePath, template, metadata);
       ExportResult result = imageExporter.export(rendered, sourcePath, settings, template);
       if (result.status() == ProcessingStatus.EXPORTED) {
         processedFileRepository.markExported(recordId, result.outputPath(), result.stagedPath(), result.message());

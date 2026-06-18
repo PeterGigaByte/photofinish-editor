@@ -7,6 +7,7 @@ Java 21 desktop application for automated branding of photofinish images.
 - JavaFX desktop window with Dashboard, Folders, Template, History, and Updates tabs.
 - SQLite database created in the user's application data directory.
 - Configurable input and export folders, including Windows local paths and UNC network paths.
+- Optional AthleticOffice API integration: when enabled, an input photo named by `cameraId` (for example `23.jpg`) gets race, discipline, and result-table data from the configured API before rendering.
 - Background folder watcher using `WatchService`.
 - Stable-file detection before processing newly written JPG/PNG images.
 - Content-aware re-export: an unchanged file that was already exported is skipped, but new content arriving under the same name is re-exported (de-duplication uses the source size + last-modified fingerprint, not just the path).
@@ -51,7 +52,7 @@ Or build the jar and run it:
 
 ```powershell
 mvn clean package
-java -jar target\photofinish-app-0.1.9.jar
+java -jar target\photofinish-app-0.1.10.jar
 ```
 
 ## Build a Windows installer
@@ -64,10 +65,10 @@ mvn clean package
 jpackage `
   --type exe `
   --name "PhotoFinish Branding Studio" `
-  --app-version 0.1.9 `
+  --app-version 0.1.10 `
   --vendor "Rigo" `
   --input target `
-  --main-jar photofinish-app-0.1.9.jar `
+  --main-jar photofinish-app-0.1.10.jar `
   --main-class sk.rigo.photofinish.Launcher `
   --dest target\installer `
   --icon target\app-icon.ico `
@@ -85,6 +86,19 @@ The preferred release helper is:
 ```
 
 The helper builds the Java package, generates a branded Windows icon, runs `jpackage`, and prints the MSI path and SHA-256.
+
+## AthleticOffice API data
+
+The Folders tab includes an `AthleticOffice API` section. Configure:
+
+- `Use AthleticOffice API data` to enable the integration.
+- `Base URL`, for example `http://192.168.100.250:9090`.
+- Optional `Active race ID`; leave blank to use `/api/races/active`.
+- Optional `Connection ID` for the `AthleticOffice-ApplicationConnectionId` header.
+
+When enabled, the app expects the input image base name to match a discipline `cameraId`, for example `23.jpg` for `cameraId: 23`. Processing fetches `/api/races/active`, `/api/disciplines?`, and `/api/results/v3?disciplineIds=[id]&onlyUnregistered=false` on the background processing thread. If the camera ID is missing from the API response, the file is marked failed rather than exported with wrong data.
+
+API data automatically fills the header title/subtitle, result title, and result rows. Wind is added to the header subtitle when the API returns it, and `reactionTime` is written to the `REAKCIA` result-table column. It also provides template placeholders: `{cameraId}`, `{raceTitle}`, `{raceVenue}`, `{raceDate}`, `{disciplineId}`, `{discipline}`, `{disciplineShort}`, `{category}`, `{categoryShort}`, `{phase}`, `{wind}`, `{bestWind}`, `{startDate}`, `{startTime}`, `{startDateTime}`, `{participantsCount}`, `{resultsTitle}`, and `{resultsTotal}`.
 
 ## Project documentation
 

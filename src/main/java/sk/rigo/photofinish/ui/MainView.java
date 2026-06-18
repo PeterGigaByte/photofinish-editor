@@ -89,6 +89,11 @@ public class MainView {
   private TextField exportDirectoryField;
   private TextField latestJsonUrlField;
   private CheckBox autoStartWatcherField;
+  private CheckBox athleticOfficeApiEnabledField;
+  private TextField athleticOfficeBaseUrlField;
+  private TextField athleticOfficeActiveRaceIdField;
+  private TextField athleticOfficeConnectionIdField;
+  private Label athleticOfficeStatusLabel;
 
   private TextField templateNameField;
   private TextField logoPathField;
@@ -226,6 +231,14 @@ public class MainView {
     exportDirectoryField = new TextField();
     latestJsonUrlField = new TextField();
     autoStartWatcherField = new CheckBox("Start watcher when app opens");
+    athleticOfficeApiEnabledField = new CheckBox("Use AthleticOffice API data for cameraId-named input photos");
+    athleticOfficeBaseUrlField = new TextField();
+    athleticOfficeBaseUrlField.setPromptText("http://192.168.100.250:9090");
+    athleticOfficeActiveRaceIdField = new TextField();
+    athleticOfficeActiveRaceIdField.setPromptText("Blank = /api/races/active");
+    athleticOfficeConnectionIdField = new TextField();
+    athleticOfficeConnectionIdField.setPromptText("Optional AthleticOffice-ApplicationConnectionId");
+    athleticOfficeStatusLabel = new Label("API not checked.");
 
     Button browseInput = new Button("▣ Browse");
     browseInput.setOnAction(event -> chooseDirectory(inputDirectoryField));
@@ -233,18 +246,31 @@ public class MainView {
     browseExport.setOnAction(event -> chooseDirectory(exportDirectoryField));
     Button save = new Button("✓ Save settings");
     save.setOnAction(event -> saveSettings());
+    Button checkApi = new Button("Check API");
+    checkApi.setOnAction(event -> checkAthleticOfficeApi());
 
     GridPane grid = formGrid();
-    grid.add(new Label("Input folder"), 0, 0);
-    grid.add(inputDirectoryField, 1, 0);
-    grid.add(browseInput, 2, 0);
-    grid.add(new Label("Export folder"), 0, 1);
-    grid.add(exportDirectoryField, 1, 1);
-    grid.add(browseExport, 2, 1);
-    grid.add(new Label("Latest JSON URL"), 0, 2);
-    grid.add(latestJsonUrlField, 1, 2, 2, 1);
-    grid.add(autoStartWatcherField, 1, 3, 2, 1);
-    grid.add(save, 1, 4);
+    int row = 0;
+    grid.add(new Label("Input folder"), 0, row);
+    grid.add(inputDirectoryField, 1, row);
+    grid.add(browseInput, 2, row++);
+    grid.add(new Label("Export folder"), 0, row);
+    grid.add(exportDirectoryField, 1, row);
+    grid.add(browseExport, 2, row++);
+    grid.add(new Label("Latest JSON URL"), 0, row);
+    grid.add(latestJsonUrlField, 1, row++, 2, 1);
+    grid.add(autoStartWatcherField, 1, row++, 2, 1);
+
+    grid.add(sectionTitle("AthleticOffice API"), 0, row++, 3, 1);
+    grid.add(athleticOfficeApiEnabledField, 1, row++, 2, 1);
+    grid.add(new Label("Base URL"), 0, row);
+    grid.add(athleticOfficeBaseUrlField, 1, row++, 2, 1);
+    grid.add(new Label("Active race ID"), 0, row);
+    grid.add(athleticOfficeActiveRaceIdField, 1, row++, 2, 1);
+    grid.add(new Label("Connection ID"), 0, row);
+    grid.add(athleticOfficeConnectionIdField, 1, row++, 2, 1);
+    grid.add(new HBox(8, save, checkApi), 1, row++);
+    grid.add(athleticOfficeStatusLabel, 1, row++, 2, 1);
 
     VBox content = new VBox(12, sectionTitle("Folder settings"), grid);
     content.setPadding(new Insets(16));
@@ -558,6 +584,10 @@ public class MainView {
     exportDirectoryField.setText(settings.getExportDirectory());
     latestJsonUrlField.setText(settings.getLatestJsonUrl());
     autoStartWatcherField.setSelected(settings.isAutoStartWatcher());
+    athleticOfficeApiEnabledField.setSelected(settings.isAthleticOfficeApiEnabled());
+    athleticOfficeBaseUrlField.setText(settings.getAthleticOfficeBaseUrl());
+    athleticOfficeActiveRaceIdField.setText(settings.getAthleticOfficeActiveRaceId());
+    athleticOfficeConnectionIdField.setText(settings.getAthleticOfficeConnectionId());
   }
 
   private void saveSettings() {
@@ -565,6 +595,10 @@ public class MainView {
     String exportDirectory = exportDirectoryField.getText().trim();
     String latestJsonUrl = latestJsonUrlField.getText().trim();
     boolean autoStartWatcher = autoStartWatcherField.isSelected();
+    boolean athleticOfficeApiEnabled = athleticOfficeApiEnabledField.isSelected();
+    String athleticOfficeBaseUrl = athleticOfficeBaseUrlField.getText().trim();
+    String athleticOfficeActiveRaceId = athleticOfficeActiveRaceIdField.getText().trim();
+    String athleticOfficeConnectionId = athleticOfficeConnectionIdField.getText().trim();
 
     CompletableFuture.runAsync(() -> {
       try {
@@ -573,6 +607,10 @@ public class MainView {
         settings.setExportDirectory(exportDirectory);
         settings.setLatestJsonUrl(latestJsonUrl);
         settings.setAutoStartWatcher(autoStartWatcher);
+        settings.setAthleticOfficeApiEnabled(athleticOfficeApiEnabled);
+        settings.setAthleticOfficeBaseUrl(athleticOfficeBaseUrl);
+        settings.setAthleticOfficeActiveRaceId(athleticOfficeActiveRaceId);
+        settings.setAthleticOfficeConnectionId(athleticOfficeConnectionId);
         context.settingsRepository().save(settings);
       } catch (SQLException ex) {
         throw new IllegalStateException(ex);
@@ -580,6 +618,33 @@ public class MainView {
     }, uiExecutor).thenRun(() -> Platform.runLater(() -> statusLine.setText("Settings saved.")))
         .exceptionally(ex -> {
           Platform.runLater(() -> statusLine.setText("Settings save failed: " + userMessage(ex)));
+          return null;
+        });
+  }
+
+  private void checkAthleticOfficeApi() {
+    athleticOfficeStatusLabel.setText("Checking AthleticOffice API...");
+    boolean enabled = athleticOfficeApiEnabledField.isSelected();
+    String baseUrl = athleticOfficeBaseUrlField.getText().trim();
+    String activeRaceId = athleticOfficeActiveRaceIdField.getText().trim();
+    String connectionId = athleticOfficeConnectionIdField.getText().trim();
+
+    CompletableFuture
+        .supplyAsync(() -> {
+          try {
+            AppSettings settings = context.settingsRepository().load();
+            settings.setAthleticOfficeApiEnabled(enabled);
+            settings.setAthleticOfficeBaseUrl(baseUrl);
+            settings.setAthleticOfficeActiveRaceId(activeRaceId);
+            settings.setAthleticOfficeConnectionId(connectionId);
+            return context.athleticOfficeService().check(settings);
+          } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+          }
+        }, uiExecutor)
+        .thenAccept(message -> Platform.runLater(() -> athleticOfficeStatusLabel.setText(message)))
+        .exceptionally(ex -> {
+          Platform.runLater(() -> athleticOfficeStatusLabel.setText("API check failed: " + userMessage(ex)));
           return null;
         });
   }

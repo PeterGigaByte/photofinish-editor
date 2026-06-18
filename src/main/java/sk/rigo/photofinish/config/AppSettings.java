@@ -7,6 +7,10 @@ public class AppSettings {
   private long activeTemplateId;
   private String latestJsonUrl;
   private boolean autoStartWatcher;
+  private boolean athleticOfficeApiEnabled;
+  private String athleticOfficeBaseUrl;
+  private String athleticOfficeActiveRaceId;
+  private String athleticOfficeConnectionId;
 
   public String getInputDirectory() {
     return inputDirectory;
@@ -46,5 +50,37 @@ public class AppSettings {
 
   public void setAutoStartWatcher(boolean autoStartWatcher) {
     this.autoStartWatcher = autoStartWatcher;
+  }
+
+  public boolean isAthleticOfficeApiEnabled() {
+    return athleticOfficeApiEnabled;
+  }
+
+  public void setAthleticOfficeApiEnabled(boolean athleticOfficeApiEnabled) {
+    this.athleticOfficeApiEnabled = athleticOfficeApiEnabled;
+  }
+
+  public String getAthleticOfficeBaseUrl() {
+    return athleticOfficeBaseUrl;
+  }
+
+  public void setAthleticOfficeBaseUrl(String athleticOfficeBaseUrl) {
+    this.athleticOfficeBaseUrl = athleticOfficeBaseUrl;
+  }
+
+  public String getAthleticOfficeActiveRaceId() {
+    return athleticOfficeActiveRaceId;
+  }
+
+  public void setAthleticOfficeActiveRaceId(String athleticOfficeActiveRaceId) {
+    this.athleticOfficeActiveRaceId = athleticOfficeActiveRaceId;
+  }
+
+  public String getAthleticOfficeConnectionId() {
+    return athleticOfficeConnectionId;
+  }
+
+  public void setAthleticOfficeConnectionId(String athleticOfficeConnectionId) {
+    this.athleticOfficeConnectionId = athleticOfficeConnectionId;
   }
 }
